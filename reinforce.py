@@ -25,12 +25,11 @@ class ModelRLReinforcePolicy(nn.Module):
 
 
     def forward(self, x):
-        # Applying softmax on the forward pass
-        return F.softmax(self._policy_params(x), dim=1)
+        return self._policy_params(x)
 
     def policy(self, obs):
-        probs = self.forward(obs)
-        return Categorical(probs=probs)
+        logits = self.forward(obs)
+        return Categorical(logits=logits)
 
     def act(self, obs):
         '''
@@ -47,3 +46,11 @@ class ModelRLReinforcePolicy(nn.Module):
         # Return a single action and the log_prob of the action
         return action.item(), dist.log_prob(action)
 
+
+
+
+
+def run():
+    pass
+
+    # REINFOR
