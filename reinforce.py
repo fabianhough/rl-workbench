@@ -86,12 +86,14 @@ def run():
     ## Training
 
     for e in range(epochs):
+        print('Epoch', e)
         # Batch lists for multi-episode batch training
         batch_observs = []
         batch_actions = []
         batch_returns = []
 
         for episode in range(batch_size):
+            print('Episode', episode)
             ## Play episode
 
             # Per episode lists
@@ -104,7 +106,7 @@ def run():
 
             while True:
                 # Save observ
-                ep_observs.append(observ.copy())
+                ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
 
                 # Get Action
                 action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
@@ -152,7 +154,7 @@ def run():
         ## Test policy
         observ, info = env.reset(seed=env_test_seed)
         while True:
-            action = policy_net.act(observ)
+            action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
             observ, reward, terminated, truncated, info = env.step(action)
             if terminated or truncated:
                 break
