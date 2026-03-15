@@ -46,7 +46,7 @@ class ModelRLReinforcePolicy(nn.Module):
 
     def loss(self, observs, actions, weights):
         # Generating the log_probs
-        log_probs = self.policy(obs).log_prob(actions)
+        log_probs = self.policy(observs).log_prob(actions)
         # Calculating the negative loss
         return -(log_probs * weights).mean()
 
@@ -61,8 +61,8 @@ def run():
     # NOTE: Turn into adjustable values
     disc_gamma = 0.99
     lr = 1e-3
-    epochs = 20
-    batch_size = 2000
+    epochs = 1
+    batch_size = 1
     env_str = 'CartPole-v1'
     env_test_seed = 42
     hidden_dims = [32]
@@ -71,8 +71,8 @@ def run():
     env = gym.make(env_str, render_mode="rgb_array")
 
     # Creating policy
-    input_dim = env.action_space.n # NOTE: Only for discrete actions
-    output_dim = env.observation_space.shape[0] # NOTE: Only for flat states
+    input_dim = env.observation_space.shape[0] # NOTE: Only for flat states
+    output_dim = env.action_space.n # NOTE: Only for discrete actions
     policy_net = ModelRLReinforcePolicy(
         input_dim=input_dim,
         output_dim=output_dim,
@@ -107,7 +107,7 @@ def run():
                 ep_observs.append(observ.copy())
 
                 # Get Action
-                action = policy_net.act(torch.tensor(observ, dtype=torch.float32))
+                action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
                 ep_actions.append(action)
 
                 # Step through environment
@@ -119,7 +119,7 @@ def run():
                     # Calculate the discounted rewards-to-go
                     # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
                     for i in range(len(ep_rewards))[::-1]:
-                        ep_rewards[i] += disc_gamma * ep_rewards[i+1] if i+1 < len(rewards) else 0
+                        ep_rewards[i] += disc_gamma * ep_rewards[i+1] if i+1 < len(ep_rewards) else 0
                     
                     # Adding all results to batch
                     batch_observs += ep_observs
@@ -161,3 +161,5 @@ def run():
 
 
 
+if __name__ == '__main__':
+    run()
