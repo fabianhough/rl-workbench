@@ -4,6 +4,7 @@ Inspired by CleanRL
 
 import os
 import yaml
+import random
 
 import gymnasium as gym
 
@@ -50,9 +51,12 @@ class DQNPolicy(SimpleLinearPolicyNet):
         # Sample an action
         return self.policy(observ.unsqueeze(0)).argmax().item()
 
-    def loss(self, observs, target_q):
+    def loss(self, observs, actions, target_q):
         # Generating q_vals
         q_vals = self.policy(observs)
+
+        # Gathering q values associated with actions
+        q_vals = q_vals.gather(dim=1, index=actions).squeeze()
 
         # Generating the loss
         loss = F.mse_loss(input=q_vals, target=target_q)
@@ -65,7 +69,9 @@ def rl_dqn(
     gamma,
     epsilon,
     epsilon_decay,
+    epsilon_end,
     buffer_len,
+    batch_size,
     num_episodes,
     log_episode,
     env_str,
@@ -127,27 +133,70 @@ def rl_dqn(
         for episode in range(num_episodes):
             print(f'Episode {episode}', end='\r')
 
-            ep_observs, ep_actions, ep_returns = training_episode(
-                env, policy_net, discounted_rewards_to_go,
-                gamma, epsilon, epsilon_decay,
-                device
-            )
+            # Reset Env
+            observ, info = env.reset()
+            steps = 0
+            ep_reward = 0
+
+            # Running through episode
+            while True: # NOTE: Based on episode limit
+                # Get Action
+                if random.random() < epsilon:
+                    action = env.action_space.sample()
+                else:
+                    with torch.no_grad():
+                        # Assumes action is a single action
+                        action = policy_net.act(torch.tensor(observ, dtype=torch.float32).to(device))
+
+                # Step through environment
+                next_observ, reward, terminated, truncated, info = env.step(action)
+                done = terminated or truncated
+
+                # Add to buffer
+                replay_buffer.add(observ, action, reward, next_observ, done)
+
+                # Set up next step
+                observ = next_observ
+                ep_reward += reward
+                steps += 1
+                
+                # Checks for completion or cancellation
+                if done:
+                    ## Network Update
+                    optimizer.zero_grad()
+                    s_observs, s_actions, s_rewards, s_next_observs, s_dones = \
+                        replay_buffer.sample(batch_size=batch_size)
+
+                    s_observs = torch.tensor(s_observs).to(device)
+                    s_actions = torch.tensor(s_actions).to(device)
+                    s_rewards = torch.tensor(s_rewards).to(device)
+                    s_next_observs = torch.tensor(s_next_observs).to(device)
+                    s_dones = torch.tensor(s_dones).to(device)
+
+                    # Calculating loss
+                    with torch.no_grad():
+                        next_actions, _ = target_net(s_next_observs).max(dim=1)
+                        target_q = s_rewards + gamma * next_actions * (1 - dones)
+
+                    loss = policy_net.loss(observs, actions, target_q)
+                    loss.backward()
+                    optimizer.step()
+
+                    # Copying back weights to target
+                    target_net.load_state_dict(policy_net.state_dict())
+                    
+                    # Log in MLFlow
+                    mlflow.log_metrics(
+                        {
+                            'loss': loss.item(),
+                            'episode_reward': episode_reward,
+                            'episode_steps': steps
+                        },
+                        step=episode
+                    )
 
 
-            ## Network Update
-
-            optimizer.zero_grad()
-
-            # Calculate the loss
-            batch_loss = policy_net.loss(
-                observs=torch.tensor(batch_observs, dtype=torch.float32).to(device),
-                actions=torch.tensor(batch_actions, dtype=torch.int64).to(device),
-                weights=torch.tensor(batch_returns, dtype=torch.float32).to(device)
-            )
-
-            # Batch Train
-            batch_loss.backward()
-            optimizer.step()
+            epsilon = max(epsilon_end, epsilon * epsilon_decay)
 
             with torch.no_grad():
                 total_rewards, frames = evaluate_episode(
@@ -157,16 +206,6 @@ def rl_dqn(
                     device=device
                 )
 
-            ## Log in MLFlow
-            # mlflow.log_metrics(
-            #     {
-            #         'batch_loss': batch_loss.item(),
-            #         'batch_len_avg': len(batch_observs)/episodes_per_epoch,
-            #         'eval_len': len(total_rewards),
-            #         'eval_reward': sum(total_rewards)
-            #     },
-            #     step=epoch
-            # )
 
             if episode > 0 and (episode+1) % log_episode == 0:
                 # Saving gif of performance
