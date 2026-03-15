@@ -2,7 +2,8 @@
 Inspired by SpinningUp and HuggingFace
 '''
 
-
+import yaml
+import mlflow
 import gymnasium as gym
 import torch
 import torch.nn as nn
@@ -53,19 +54,21 @@ class ModelRLReinforcePolicy(nn.Module):
 
 
 
-def run():
+def run(
+    disc_gamma,
+    lr,
+    epochs,
+    batch_size,
+    env_str,
+    env_test_seed,
+    hidden_dims,
+    experiment,
+    model_name
+):
 
-    # REINFORCE/VPG
+    ### REINFORCE/VPG
 
-    # Hyperparameters
-    # NOTE: Turn into adjustable values
-    disc_gamma = 0.99
-    lr = 1e-3
-    epochs = 1
-    batch_size = 1
-    env_str = 'CartPole-v1'
-    env_test_seed = 42
-    hidden_dims = [32]
+    ## Setup
 
     # Creating environment and rendering for gifs in MLFlow
     env = gym.make(env_str, render_mode="rgb_array")
@@ -83,85 +86,111 @@ def run():
         lr=lr
     )
 
-    ## Training
+    mlflow.set_experiment(experiment)
+    with mlflow.start_run():
 
-    for e in range(epochs):
-        print('Epoch', e)
-        # Batch lists for multi-episode batch training
-        batch_observs = []
-        batch_actions = []
-        batch_returns = []
+        mlflow.log_params({
+            'env': env_str,
+            'lr': lr,
+            'gamma': disc_gamma,
+            'epochs': epochs,
+            'batch_size': batch_size,
+            'device': 'cpu'
+        })
 
-        for episode in range(batch_size):
-            print('Episode', episode)
-            ## Play episode
+        ## Training
 
-            # Per episode lists
-            ep_observs = []
-            ep_actions = []
-            ep_rewards = []
+        for e in range(epochs):
+            print('Epoch', e)
+            # Batch lists for multi-episode batch training
+            batch_observs = []
+            batch_actions = []
+            batch_returns = []
 
-            # Reset Env
-            observ, info = env.reset()
+            for episode in range(batch_size):
+                print('Episode', episode)
+                ## Play episode
 
-            while True:
-                # Save observ
-                ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
+                # Per episode lists
+                ep_observs = []
+                ep_actions = []
+                ep_rewards = []
 
-                # Get Action
-                action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
-                ep_actions.append(action)
+                # Reset Env
+                observ, info = env.reset()
 
-                # Step through environment
-                observ, reward, terminated, truncated, info = env.step(action)
-                ep_rewards.append(reward)
-                
-                # Checks for completion or cancellation
-                if terminated or truncated:
-                    # Calculate the discounted rewards-to-go
-                    # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
-                    for i in range(len(ep_rewards))[::-1]:
-                        ep_rewards[i] += disc_gamma * ep_rewards[i+1] if i+1 < len(ep_rewards) else 0
+                while True:
+                    # Save observ
+                    ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
+
+                    # Get Action
+                    action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
+                    ep_actions.append(action)
+
+                    # Step through environment
+                    observ, reward, terminated, truncated, info = env.step(action)
+                    ep_rewards.append(reward)
                     
-                    # Adding all results to batch
-                    batch_observs += ep_observs
-                    batch_actions += ep_actions
-                    batch_returns += ep_rewards
+                    # Checks for completion or cancellation
+                    if terminated or truncated:
+                        # Calculate the discounted rewards-to-go
+                        # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
+                        for i in range(len(ep_rewards))[::-1]:
+                            ep_rewards[i] += disc_gamma * ep_rewards[i+1] if i+1 < len(ep_rewards) else 0
+                        
+                        # Adding all results to batch
+                        batch_observs += ep_observs
+                        batch_actions += ep_actions
+                        batch_returns += ep_rewards
 
-                    # Reset env
-                    observ, info = env.reset()
+                        # Reset env
+                        observ, info = env.reset()
+                        break
+            
+            
+            ## Batch Update
+
+            optimizer.zero_grad()
+
+            # Calculate the loss
+            batch_loss = policy_net.loss(
+                observs=torch.tensor(batch_observs, dtype=torch.float32),
+                actions=torch.tensor(batch_actions, dtype=torch.int32),
+                weights=torch.tensor(batch_returns, dtype=torch.float32)
+            )
+
+            # Batch Train
+            batch_loss.backward()
+            optimizer.step()
+
+            # TODO: Log batch loss, return, and length of batch
+
+            ## Test policy
+            observ, info = env.reset(seed=env_test_seed)
+            total_rewards = []
+            while True:
+                action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
+                observ, reward, terminated, truncated, info = env.step(action)
+                total_rewards.append(reward)
+                if terminated or truncated:
                     break
-        
-        
-        ## Batch Update
+            
+            ## Log in MLFlow
+            mlflow.log_metrics(
+                {
+                    'batch_loss': batch_loss,
+                    'batch_len': len(batch_observs),
+                    'test_len': len(total_rewards),
+                    'test_reward': sum(total_rewards)
+                },
+                step=e
+            )
 
-        optimizer.zero_grad()
-
-        # Calculate the loss
-        batch_loss = policy_net.loss(
-            observs=torch.tensor(batch_observs, dtype=torch.float32),
-            actions=torch.tensor(batch_actions, dtype=torch.int32),
-            weights=torch.tensor(batch_returns, dtype=torch.float32)
-        )
-
-        # Batch Train
-        batch_loss.backward()
-        optimizer.step()
-
-        # TODO: Log batch loss, return, and length of batch
-
-
-        ## Test policy
-        observ, info = env.reset(seed=env_test_seed)
-        while True:
-            action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
-            observ, reward, terminated, truncated, info = env.step(action)
-            if terminated or truncated:
-                break
-
-        ## Log in MLFlow
-
-
+            
 
 if __name__ == '__main__':
-    run()
+    with open('config.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+
+    mlflow.set_tracking_uri(config.pop('tracking_uri'))
+    run(**config)
