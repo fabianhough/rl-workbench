@@ -211,7 +211,7 @@ def rl_reinforce(
                 step=epoch
             )
 
-            if epoch > 0 and epoch % log_epoch == 0:
+            if epoch > 0 and (epoch+1) % log_epoch == 0:
                 # Saving gif of performance
                 eval_gif_fn = f'eval_epoch_{epoch:03d}.gif'
                 save_gif(frames=frames, path=eval_gif_fn)
