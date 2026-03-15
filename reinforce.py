@@ -28,22 +28,20 @@ class ModelRLReinforcePolicy(nn.Module):
         # Applying softmax on the forward pass
         return F.softmax(self._policy_params(x), dim=1)
 
+    def policy(self, obs):
+        probs = self.forward(obs)
+        return Categorical(probs=probs)
 
-    def act(self, state):
+    def act(self, obs):
         '''
         Args:
-            state (torch.Tensor):   A given environment single state
+            obs (torch.Tensor):   A given set of states
 
         Returns:
             (int, torch.Tensor):
         '''
-        # Forward pass to obtain the probs of actions
-        probs = self.forward(state.unsqueeze(0))
-
-        # Generating a distribution of probs
-        dist = Categorical(probs)
-
         # Sample an action
+        dist = self.policy(obs)
         action = dist.sample()
 
         # Return a single action and the log_prob of the action
