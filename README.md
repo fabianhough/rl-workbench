@@ -8,8 +8,8 @@ The repository is structured so that models, agents, and environments are compos
 
 | Algorithm | Status | Environment |
 |-----------|--------|-------------|
-| REINFORCE | In progress | |
-| DQN | | |
+| REINFORCE | ✓ | CartPole-v1 |
+| DQN | In Progress | CartPole-v1 |
 | DDPG | | |
 | A2C | | |
 | PPO | | |
