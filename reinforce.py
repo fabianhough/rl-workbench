@@ -53,7 +53,7 @@ class ModelRLReinforcePolicy(nn.Module):
 
     def act(self, observ):
         # Sample an action
-        return self.policy(observ).sample().item()
+        return self.policy(observ.unsqueeze(0)).sample().item()
 
     def loss(self, observs, actions, weights):
         # Generating the log_probs
@@ -154,7 +154,7 @@ def rl_reinforce(
                     ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
 
                     # Get Action
-                    action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0).to(device))
+                    action = policy_net.act(torch.tensor(observ, dtype=torch.float32).to(device))
                     ep_actions.append(action)
 
                     # Step through environment
