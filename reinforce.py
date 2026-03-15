@@ -9,6 +9,12 @@ import gymnasium as gym
 import torch
 import torch.nn as nn
 
+import logging
+logging.getLogger("mlflow.pytorch").setLevel(logging.ERROR)
+logging.getLogger("mlflow.utils.requirements_utils").setLevel(logging.ERROR)
+# NOTE: Specifically for mlflow export model complaints
+
+from mlflow.models import infer_signature
 from torch.distributions import Categorical
 from torch.optim import Adam
 
@@ -208,6 +214,22 @@ def rl_reinforce(
             save_gif(frames=frames, path=eval_gif_fn)
             mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
             os.remove(eval_gif_fn)
+
+            input_sample = torch.zeros(1, input_dim).to(device)
+            output_sample = policy_net.forward(input_sample).detach().cpu().numpy()
+            input_sample = input_sample.cpu().numpy()
+            signature = infer_signature(
+                model_input=input_sample,
+                model_output=output_sample
+            )
+            policy_net.cpu()
+            mlflow.pytorch.log_model(
+                pytorch_model=policy_net,
+                name=model_name,
+                input_example=input_sample,
+                signature=signature
+            )
+            policy_net.to(device)
 
             
 
