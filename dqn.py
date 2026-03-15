@@ -52,11 +52,15 @@ class DQNPolicy(SimpleLinearPolicyNet):
         return self.policy(observ.unsqueeze(0)).argmax().item()
 
     def loss(self, observs, actions, target_q):
+        # observs (#, *observ_space)
+        # actions (#, )
+        # target_q (#, )
+
         # Generating q_vals
         q_vals = self.policy(observs)
 
         # Gathering q values associated with actions
-        q_vals = q_vals.gather(dim=1, index=actions).squeeze()
+        q_vals = q_vals.gather(dim=1, index=actions.unsqueeze(1)).squeeze()
 
         # Generating the loss
         loss = F.mse_loss(input=q_vals, target=target_q)
@@ -189,7 +193,7 @@ def rl_dqn(
                     mlflow.log_metrics(
                         {
                             'loss': loss.item(),
-                            'episode_reward': episode_reward,
+                            'episode_reward': ep_reward,
                             'episode_steps': steps
                         },
                         step=episode
