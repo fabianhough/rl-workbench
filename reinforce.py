@@ -85,8 +85,9 @@ def evaluate(env, net, env_seed=42):
 def rl_reinforce(
     disc_gamma,
     lr,
-    epochs,
-    batch_size,
+    num_epochs,
+    episodes_per_epoch,
+    log_epoch,
     env_str,
     env_test_seed,
     hidden_dims,
@@ -129,15 +130,15 @@ def rl_reinforce(
 
         ## Training
 
-        for e in range(epochs):
-            print('Epoch', e)
+        for epoch in range(num_epochs):
+            print()
             # Batch lists for multi-episode batch training
             batch_observs = []
             batch_actions = []
             batch_returns = []
 
-            for episode in range(batch_size):
-                print('Episode', episode, end='\r')
+            for episode in range(episodes_per_epoch):
+                print(f'Epoch: {epoch}\tEpisode {episode}', end='\r')
                 ## Play episode
 
                 # Per episode lists
@@ -192,46 +193,47 @@ def rl_reinforce(
             batch_loss.backward()
             optimizer.step()
 
-            # TODO: Log batch loss, return, and length of batch
-            policy_net.eval()
             with torch.no_grad():
                 total_rewards, frames = evaluate(
                     env=env,
                     net=policy_net,
                     env_seed=env_test_seed
                 )
-            policy_net.train()
-            
+
             ## Log in MLFlow
             mlflow.log_metrics(
                 {
                     'batch_loss': batch_loss.item(),
-                    'batch_len': len(batch_observs),
-                    'eval_len': len(total_rewards),
-                    'eval_reward': sum(total_rewards)
+                    'batch_len_avg': len(batch_observs)/episodes_per_epoch,
+                    'eval_len': len(total_rewards)/episodes_per_epoch,
+                    'eval_reward': sum(total_rewards)/episodes_per_epoch
                 },
-                step=e
+                step=epoch
             )
-            eval_gif_fn = f'eval_epoch_{e}.gif'
-            save_gif(frames=frames, path=eval_gif_fn)
-            mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
-            os.remove(eval_gif_fn)
 
-            input_sample = torch.zeros(1, input_dim).to(device)
-            output_sample = policy_net.forward(input_sample).detach().cpu().numpy()
-            input_sample = input_sample.cpu().numpy()
-            signature = infer_signature(
-                model_input=input_sample,
-                model_output=output_sample
-            )
-            policy_net.cpu()
-            mlflow.pytorch.log_model(
-                pytorch_model=policy_net,
-                name=model_name,
-                input_example=input_sample,
-                signature=signature
-            )
-            policy_net.to(device)
+            if epoch > 0 and epoch % log_epoch == 0:
+                # Saving gif of performance
+                eval_gif_fn = f'eval_epoch_{epoch:03d}.gif'
+                save_gif(frames=frames, path=eval_gif_fn)
+                mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
+                os.remove(eval_gif_fn)
+
+                # Logging model
+                input_sample = torch.zeros(1, input_dim).to(device)
+                output_sample = policy_net.forward(input_sample).detach().cpu().numpy()
+                input_sample = input_sample.cpu().numpy()
+                signature = infer_signature(
+                    model_input=input_sample,
+                    model_output=output_sample
+                )
+                policy_net.cpu()
+                mlflow.pytorch.log_model(
+                    pytorch_model=policy_net,
+                    name=model_name,
+                    input_example=input_sample,
+                    signature=signature
+                )
+                policy_net.to(device)
 
             
 

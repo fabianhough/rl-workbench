@@ -3,11 +3,11 @@ experiment: cartpole-vpg
 model_name: cartpole-vpg-policy
 env_str: CartPole-v1
 env_test_seed: 42
-epochs: 50
-batch_size: 5000
+num_epochs: 50
+episodes_per_epoch: 5000
 hidden_dims: [32]
 disc_gamma: 0.99
-lr: 0.001
+lr: 0.01
 
 
 
