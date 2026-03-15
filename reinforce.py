@@ -137,7 +137,7 @@ def rl_reinforce(
             batch_returns = []
 
             for episode in range(batch_size):
-                print('Episode', episode)
+                print('Episode', episode, end='\r')
                 ## Play episode
 
                 # Per episode lists
