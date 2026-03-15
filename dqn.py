@@ -85,7 +85,7 @@ def rl_dqn(
     model_name
 ):
 
-    ### REINFORCE/VPG
+    ### DQN
 
     ## Setup
 
