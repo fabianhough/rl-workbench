@@ -41,9 +41,9 @@ class ModelRLReinforcePolicy(SimpleLinearPolicyNet):
             activation=activation
         )
 
-    def policy(self, obs):
+    def policy(self, observs):
         # Unnormalized log probabilities
-        logits = self.forward(obs)
+        logits = self.forward(observs)
 
         # Includes Softmax using log-sum-exp
         return Categorical(logits=logits)
@@ -69,7 +69,6 @@ def rl_reinforce(
     env_str,
     env_test_seed,
     hidden_dims,
-    experiment,
     model_name
 ):
 
@@ -94,7 +93,6 @@ def rl_reinforce(
         lr=lr
     )
 
-    mlflow.set_experiment(experiment)
     with mlflow.start_run():
 
         mlflow.log_params({
@@ -120,7 +118,11 @@ def rl_reinforce(
                 ## Play episode
 
                 ep_observs, ep_actions, ep_returns = training_episode(
-                    env, policy_net, discounted_rewards_to_go, disc_gamma, device
+                    env=env,
+                    net=policy_net,
+                    ret_func=discounted_rewards_to_go, 
+                    ret_kwargs={'gamma': disc_gamma},
+                    device=device
                 )
 
                 # Adding all results to batch
@@ -194,4 +196,5 @@ if __name__ == '__main__':
         config = yaml.safe_load(f)
 
     mlflow.set_tracking_uri(config.pop('tracking_uri'))
+    mlflow.set_experiment(config.pop('experiment'))
     rl_reinforce(**config)

@@ -19,7 +19,7 @@ def evaluate_episode(env, net, env_seed=42, device='cpu'):
 
 
 
-def training_episode(env, net, ret_func, ret_gamma, device='cpu'):
+def training_episode(env, net, ret_func, ret_kwargs, device='cpu'):
     # Per episode lists
     ep_observs = []
     ep_actions = []
@@ -45,7 +45,7 @@ def training_episode(env, net, ret_func, ret_gamma, device='cpu'):
         # Checks for completion or cancellation
         if terminated or truncated:
             # Calculate returns
-            ep_returns = ret_func(rewards=ep_rewards, gamma=ret_gamma)
+            ep_returns = ret_func(rewards=ep_rewards, **ret_kwargs)
 
             # Reset env
             observ, info = env.reset()
