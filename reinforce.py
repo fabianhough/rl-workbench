@@ -11,8 +11,9 @@ import torch.nn as nn
 
 from torch.distributions import Categorical
 from torch.optim import Adam
-from PIL import Image
 
+
+from utils.image import save_gif
 
 
 class ModelRLReinforcePolicy(nn.Module):
@@ -55,16 +56,26 @@ class ModelRLReinforcePolicy(nn.Module):
 
 
 
-def save_gif(frames: list, path: str, fps: int=30):
-    imgs = [Image.fromarray(f) for f in frames]
-    imgs[0].save(
-        path, save_all=True, append_images=imgs[1:],
-        loop=0, duration=1000//fps
-    )
+
+def evaluate(env, net, env_seed=42):
+    ## Evaluate policy
+    observ, info = env.reset(seed=env_seed)
+    total_rewards = []
+    frames = []
+    while True:
+        frames.append(env.render())
+        action = net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
+        observ, reward, terminated, truncated, info = env.step(action)
+        total_rewards.append(reward)
+        if terminated or truncated:
+            break
+
+    return total_rewards, frames
 
 
 
-def run(
+
+def rl_reinforce(
     disc_gamma,
     lr,
     epochs,
@@ -175,17 +186,11 @@ def run(
 
             # TODO: Log batch loss, return, and length of batch
 
-            ## Evaluate policy
-            observ, info = env.reset(seed=env_test_seed)
-            total_rewards = []
-            frames = []
-            while True:
-                frames.append(env.render())
-                action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
-                observ, reward, terminated, truncated, info = env.step(action)
-                total_rewards.append(reward)
-                if terminated or truncated:
-                    break
+            total_rewards, frames = evaluate(
+                env=env,
+                net=policy_net,
+                env_seed=env_test_seed
+            )
             
             ## Log in MLFlow
             mlflow.log_metrics(
@@ -209,4 +214,4 @@ if __name__ == '__main__':
         config = yaml.safe_load(f)
 
     mlflow.set_tracking_uri(config.pop('tracking_uri'))
-    run(**config)
+    rl_reinforce(**config)
