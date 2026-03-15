@@ -123,8 +123,8 @@ def rl_reinforce(
             'env': env_str,
             'lr': lr,
             'gamma': disc_gamma,
-            'epochs': epochs,
-            'batch_size': batch_size,
+            'num_epochs': num_epochs,
+            'episodes_per_epoch': episodes_per_epoch,
             'device': device
         })
 
@@ -205,8 +205,8 @@ def rl_reinforce(
                 {
                     'batch_loss': batch_loss.item(),
                     'batch_len_avg': len(batch_observs)/episodes_per_epoch,
-                    'eval_len': len(total_rewards)/episodes_per_epoch,
-                    'eval_reward': sum(total_rewards)/episodes_per_epoch
+                    'eval_len': len(total_rewards),
+                    'eval_reward': sum(total_rewards)
                 },
                 step=epoch
             )
