@@ -124,7 +124,7 @@ def rl_reinforce(
             'gamma': disc_gamma,
             'epochs': epochs,
             'batch_size': batch_size,
-            'device': 'cpu'
+            'device': device
         })
 
         ## Training
@@ -184,7 +184,7 @@ def rl_reinforce(
             # Calculate the loss
             batch_loss = policy_net.loss(
                 observs=torch.tensor(batch_observs, dtype=torch.float32).to(device),
-                actions=torch.tensor(batch_actions, dtype=torch.int32).to(device),
+                actions=torch.tensor(batch_actions, dtype=torch.int64).to(device),
                 weights=torch.tensor(batch_returns, dtype=torch.float32).to(device)
             )
 
@@ -193,12 +193,14 @@ def rl_reinforce(
             optimizer.step()
 
             # TODO: Log batch loss, return, and length of batch
-
-            total_rewards, frames = evaluate(
-                env=env,
-                net=policy_net,
-                env_seed=env_test_seed
-            )
+            policy_net.eval()
+            with torch.no_grad():
+                total_rewards, frames = evaluate(
+                    env=env,
+                    net=policy_net,
+                    env_seed=env_test_seed
+                )
+            policy_net.train()
             
             ## Log in MLFlow
             mlflow.log_metrics(
