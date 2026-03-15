@@ -61,14 +61,15 @@ class DQNPolicy(SimpleLinearPolicyNet):
 
 
 def rl_dqn(
-    gamma,
     lr,
+    gamma,
+    epsilon,
+    epsilon_decay,
     num_episodes,
     log_episode,
     env_str,
     env_test_seed,
     hidden_dims,
-    experiment,
     model_name
 ):
 
@@ -92,14 +93,15 @@ def rl_dqn(
         output_dim=output_dim,
         hidden_dims=hidden_dims
     )
-    target_network.load_state_dict(policy_net.state_dict())
+    target_net.load_state_dict(policy_net.state_dict())
     policy_net.to(device)
+    target_net.to(device)
+
     optimizer = Adam(
         params=policy_net.parameters(),
         lr=lr
     )
-
-    mlflow.set_experiment(experiment)
+    
     with mlflow.start_run():
 
         mlflow.log_params({
@@ -116,7 +118,9 @@ def rl_dqn(
             print(f'Episode {episode}', end='\r')
 
             ep_observs, ep_actions, ep_returns = training_episode(
-                env, policy_net, discounted_rewards_to_go, disc_gamma, device
+                env, policy_net, discounted_rewards_to_go,
+                gamma, epsilon, epsilon_decay,
+                device
             )
 
 
@@ -187,4 +191,5 @@ if __name__ == '__main__':
         config = yaml.safe_load(f)
 
     mlflow.set_tracking_uri(config.pop('tracking_uri'))
+    mlflow.set_experiment(config.pop('experiment'))
     rl_dqn(**config)
