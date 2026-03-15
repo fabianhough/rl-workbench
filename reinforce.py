@@ -78,7 +78,7 @@ def evaluate_episode(env, net, env_seed=42):
     frames = []
     while True:
         frames.append(env.render())
-        action = net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0).to(device))
+        action = net.act(torch.tensor(observ, dtype=torch.float32).to(device))
         observ, reward, terminated, truncated, info = env.step(action)
         total_rewards.append(reward)
         if terminated or truncated:
