@@ -227,13 +227,14 @@ def rl_reinforce(
                     model_output=output_sample
                 )
                 policy_net.cpu()
-                mlflow.pytorch.log_model(
+                model_info = mlflow.pytorch.log_model(
                     pytorch_model=policy_net,
                     name=model_name,
                     input_example=input_sample,
                     signature=signature
                 )
                 policy_net.to(device)
+                mlflow.register_model(model_info.model_uri, model_name)
 
             
 
