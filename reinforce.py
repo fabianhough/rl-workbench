@@ -190,7 +190,7 @@ def rl_reinforce(
             
 
 if __name__ == '__main__':
-    with open('config.yaml', 'r') as f:
+    with open('reinforce-config.yaml', 'r') as f:
         config = yaml.safe_load(f)
 
     mlflow.set_tracking_uri(config.pop('tracking_uri'))
