@@ -3,11 +3,12 @@ Inspired by SpinningUp and HuggingFace
 '''
 
 
-
+import gymnasium as gym
 import torch
 import torch.nn as nn
 
 from torch.distributions import Categorical
+from torch.optim import Adam
 
 
 
@@ -52,40 +53,111 @@ class ModelRLReinforcePolicy(nn.Module):
 
 
 
-class Batch():
-    observs = []
-    actions = []
-    weights = []
-
-
-
-
 def run():
-    pass
 
     # REINFORCE/VPG
 
     # Hyperparameters
     # NOTE: Turn into adjustable values
     disc_gamma = 0.99
+    lr = 1e-3
+    epochs = 20
     batch_size = 2000
+    env_str = 'CartPole-v1'
+    env_test_seed = 42
+    hidden_dims = [32]
 
-    batch_
+    # Creating environment and rendering for gifs in MLFlow
+    env = gym.make(env_str, render_mode="rgb_array")
 
-    ep_rewards = []
+    # Creating policy
+    input_dim = env.action_space.n # NOTE: Only for discrete actions
+    output_dim = env.observation_space.shape[0] # NOTE: Only for flat states
+    policy_net = ModelRLReinforcePolicy(
+        input_dim=input_dim,
+        output_dim=output_dim,
+        hidden_dims=hidden_dims
+    )
+    optimizer = Adam(
+        params=policy_net.parameters(),
+        lr=lr
+    )
 
-    while True:
-        pass
-        # Get Action
+    ## Training
 
-        # Step through environment
+    for e in range(epochs):
+        # Batch lists for multi-episode batch training
+        batch_observs = []
+        batch_actions = []
+        batch_returns = []
 
-        if done:
+        for episode in range(batch_size):
+            ## Play episode
 
-            # Calculate the discounted rewards-to-go
-            # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
-            for i in range(len(rewards))[::-1]:
-                rewards[i] += disc_gamma * rewards[i+1] if i+1 < len(rewards) else 0
+            # Per episode lists
+            ep_observs = []
+            ep_actions = []
+            ep_rewards = []
+
+            # Reset Env
+            observ, info = env.reset()
+
+            while True:
+                # Save observ
+                ep_observs.append(observ.copy())
+
+                # Get Action
+                action = policy_net.act(observ)
+                ep_actions.append(action)
+
+                # Step through environment
+                observ, reward, terminated, truncated, info = env.step(action)
+                ep_rewards.append(reward)
+                
+                # Checks for completion or cancellation
+                if terminated or truncated:
+                    # Calculate the discounted rewards-to-go
+                    # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
+                    for i in range(len(ep_rewards))[::-1]:
+                        ep_rewards[i] += disc_gamma * ep_rewards[i+1] if i+1 < len(rewards) else 0
+                    
+                    # Adding all results to batch
+                    batch_observs += ep_observs
+                    batch_actions += ep_actions
+                    batch_returns += ep_rewards
+
+                    # Reset env
+                    observ, info = env.reset()
+                    break
+        
+        
+        ## Batch Update
+
+        optimizer.zero_grad()
+
+        # Calculate the loss
+        batch_loss = policy_net.loss(
+            observs=batch_observs,
+            actions=batch_actions,
+            weights=batch_returns
+        )
+
+        # Batch Train
+        batch_loss.backward()
+        optimizer.step()
+
+        # TODO: Log batch loss, return, and length of batch
 
 
-            # Calculate the loss
+        ## Test policy
+        observ, info = env.reset(seed=env_test_seed)
+        while True:
+            action = policy_net.act(observ)
+            observ, reward, terminated, truncated, info = env.step(action)
+            if terminated or truncated:
+                break
+
+        ## Log in MLFlow
+
+
+
