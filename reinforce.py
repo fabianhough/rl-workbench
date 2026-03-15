@@ -4,45 +4,42 @@ Inspired by SpinningUp and HuggingFace
 
 import os
 import yaml
-import mlflow
+
 import gymnasium as gym
-import torch
-import torch.nn as nn
+
+import mlflow
+from mlflow.models import infer_signature
 
 import logging
 logging.getLogger("mlflow.pytorch").setLevel(logging.ERROR)
 logging.getLogger("mlflow.utils.requirements_utils").setLevel(logging.ERROR)
 # NOTE: Specifically for mlflow export model complaints
 
-from mlflow.models import infer_signature
+import torch
+import torch.nn as nn
 from torch.distributions import Categorical
 from torch.optim import Adam
 
 device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
-from utils.image import save_gif
+from src.utils.image import save_gif
+from src.episode import training_episode, evaluate_episode
+from src.reward import discounted_rewards_to_go
+from src.model import SimpleLinearPolicyNet
 
 
-class ModelRLReinforcePolicy(nn.Module):
+
+
+class ModelRLReinforcePolicy(SimpleLinearPolicyNet):
     def __init__(self, input_dim: int, output_dim: int, hidden_dims: list, activation=nn.ReLU):
         '''
         '''
-        super().__init__()
-
-        # Dynamically add linear projections and adds activations in between
-        layer_dims = [input_dim] + hidden_dims + [output_dim]
-        ops = []
-        for i in range(len(layer_dims) - 1): # Iterate two i at a time
-            ops.append(nn.Linear(layer_dims[i], layer_dims[i+1]))
-            if i < len(layer_dims) - 2:
-                ops.append(activation())
-
-        # Applying operations to policy
-        self._policy_params = nn.Sequential(*ops)
-
-
-    def forward(self, x):
-        return self._policy_params(x)
+        super().__init__(
+            input_dim=input_dim,
+            output_dim=output_dim,
+            hidden_dims=hidden_dims,
+            activation=activation
+        )
 
     def policy(self, obs):
         # Unnormalized log probabilities
@@ -61,66 +58,6 @@ class ModelRLReinforcePolicy(nn.Module):
         # Calculating the negative loss
         return -(log_probs * weights).mean()
 
-
-def discounted_rewards_to_go(rewards, gamma):
-    # Calculate the discounted rewards-to-go
-    # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
-    for i in range(len(rewards))[::-1]:
-        rewards[i] += gamma * rewards[i+1] if i+1 < len(rewards) else 0
-    return rewards # TODO: Rewrite to protect against overwriting
-
-
-
-def evaluate_episode(env, net, env_seed=42):
-    ## Evaluate policy
-    observ, info = env.reset(seed=env_seed)
-    total_rewards = []
-    frames = []
-    while True:
-        frames.append(env.render())
-        action = net.act(torch.tensor(observ, dtype=torch.float32).to(device))
-        observ, reward, terminated, truncated, info = env.step(action)
-        total_rewards.append(reward)
-        if terminated or truncated:
-            break
-
-    return total_rewards, frames
-
-
-
-def training_episode(env, net, ret_func, ret_gamma):
-    # Per episode lists
-    ep_observs = []
-    ep_actions = []
-    ep_rewards = []
-
-    # Reset Env
-    observ, info = env.reset()
-
-    # Running through episode
-    while True: # NOTE: Based on episode limit
-        # Save observ
-        ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
-
-        # Get Action
-        # Assumes action is a single action
-        action = net.act(torch.tensor(observ, dtype=torch.float32).to(device))
-        ep_actions.append(action)
-
-        # Step through environment
-        observ, reward, terminated, truncated, info = env.step(action)
-        ep_rewards.append(reward)
-        
-        # Checks for completion or cancellation
-        if terminated or truncated:
-            # Calculate returns
-            ep_returns = ret_func(rewards=ep_rewards, gamma=ret_gamma)
-
-            # Reset env
-            observ, info = env.reset()
-            return ep_observs, ep_actions, ep_returns
-
-    
 
 
 def rl_reinforce(
@@ -183,7 +120,7 @@ def rl_reinforce(
                 ## Play episode
 
                 ep_observs, ep_actions, ep_returns = training_episode(
-                    env, policy_net, discounted_rewards_to_go, disc_gamma
+                    env, policy_net, discounted_rewards_to_go, disc_gamma, device
                 )
 
                 # Adding all results to batch
@@ -210,7 +147,8 @@ def rl_reinforce(
                 total_rewards, frames = evaluate_episode(
                     env=env,
                     net=policy_net,
-                    env_seed=env_test_seed
+                    env_seed=env_test_seed,
+                    device=device
                 )
 
             ## Log in MLFlow
