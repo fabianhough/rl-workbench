@@ -176,9 +176,9 @@ def rl_dqn(
                     # Calculating loss
                     with torch.no_grad():
                         next_actions, _ = target_net(s_next_observs).max(dim=1)
-                        target_q = s_rewards + gamma * next_actions * (1 - dones)
+                        target_q = s_rewards + gamma * next_actions * (1 - s_dones)
 
-                    loss = policy_net.loss(observs, actions, target_q)
+                    loss = policy_net.loss(s_observs, s_actions, target_q)
                     loss.backward()
                     optimizer.step()
 
