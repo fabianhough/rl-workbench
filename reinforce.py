@@ -6,7 +6,6 @@ Inspired by SpinningUp and HuggingFace
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 
 from torch.distributions import Categorical
 
@@ -34,16 +33,22 @@ class ModelRLReinforcePolicy(nn.Module):
         return self._policy_params(x)
 
     def policy(self, obs):
+        # Unnormalized log probabilities
         logits = self.forward(obs)
+
+        # Includes Softmax using log-sum-exp
         return Categorical(logits=logits)
 
-    def act(self, obs):
+    def act(self, observ):
         # Sample an action
-        dist = self.policy(obs)
-        action = dist.sample()
+        return self.policy(observ).sample().item()
 
-        # Return a single action and the log_prob of the action
-        return action.item(), dist.log_prob(action)
+    def loss(self, observs, actions, weights):
+        # Generating the log_probs
+        log_probs = self.policy(obs).log_prob(actions)
+        # Calculating the negative loss
+        return -(log_probs * weights).mean()
+
 
 
 
@@ -51,7 +56,6 @@ class Batch():
     observs = []
     actions = []
     weights = []
-    rewards = []
 
 
 
