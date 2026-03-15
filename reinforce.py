@@ -62,9 +62,16 @@ class ModelRLReinforcePolicy(nn.Module):
         return -(log_probs * weights).mean()
 
 
+def discounted_rewards_to_go(rewards, gamma):
+    # Calculate the discounted rewards-to-go
+    # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
+    for i in range(len(rewards))[::-1]:
+        rewards[i] += gamma * rewards[i+1] if i+1 < len(rewards) else 0
+    return rewards # TODO: Rewrite to protect against overwriting
 
 
-def evaluate(env, net, env_seed=42):
+
+def evaluate_episode(env, net, env_seed=42):
     ## Evaluate policy
     observ, info = env.reset(seed=env_seed)
     total_rewards = []
@@ -80,6 +87,40 @@ def evaluate(env, net, env_seed=42):
     return total_rewards, frames
 
 
+
+def training_episode(env, net, ret_func, ret_gamma):
+    # Per episode lists
+    ep_observs = []
+    ep_actions = []
+    ep_rewards = []
+
+    # Reset Env
+    observ, info = env.reset()
+
+    # Running through episode
+    while True: # NOTE: Based on episode limit
+        # Save observ
+        ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
+
+        # Get Action
+        # Assumes action is a single action
+        action = net.act(torch.tensor(observ, dtype=torch.float32).to(device))
+        ep_actions.append(action)
+
+        # Step through environment
+        observ, reward, terminated, truncated, info = env.step(action)
+        ep_rewards.append(reward)
+        
+        # Checks for completion or cancellation
+        if terminated or truncated:
+            # Calculate returns
+            ep_returns = ret_func(rewards=ep_rewards, gamma=ret_gamma)
+
+            # Reset env
+            observ, info = env.reset()
+            return ep_observs, ep_actions, ep_returns
+
+    
 
 
 def rl_reinforce(
@@ -141,42 +182,14 @@ def rl_reinforce(
                 print(f'Epoch: {epoch}\tEpisode {episode}', end='\r')
                 ## Play episode
 
-                # Per episode lists
-                ep_observs = []
-                ep_actions = []
-                ep_rewards = []
+                ep_observs, ep_actions, ep_returns = training_episode(
+                    env, policy_net, discounted_rewards_to_go, disc_gamma
+                )
 
-                # Reset Env
-                observ, info = env.reset()
-
-                while True:
-                    # Save observ
-                    ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
-
-                    # Get Action
-                    action = policy_net.act(torch.tensor(observ, dtype=torch.float32).to(device))
-                    ep_actions.append(action)
-
-                    # Step through environment
-                    observ, reward, terminated, truncated, info = env.step(action)
-                    ep_rewards.append(reward)
-                    
-                    # Checks for completion or cancellation
-                    if terminated or truncated:
-                        # Calculate the discounted rewards-to-go
-                        # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
-                        for i in range(len(ep_rewards))[::-1]:
-                            ep_rewards[i] += disc_gamma * ep_rewards[i+1] if i+1 < len(ep_rewards) else 0
-                        
-                        # Adding all results to batch
-                        batch_observs += ep_observs
-                        batch_actions += ep_actions
-                        batch_returns += ep_rewards
-
-                        # Reset env
-                        observ, info = env.reset()
-                        break
-            
+                # Adding all results to batch
+                batch_observs += ep_observs
+                batch_actions += ep_actions
+                batch_returns += ep_returns
             
             ## Batch Update
 
@@ -194,7 +207,7 @@ def rl_reinforce(
             optimizer.step()
 
             with torch.no_grad():
-                total_rewards, frames = evaluate(
+                total_rewards, frames = evaluate_episode(
                     env=env,
                     net=policy_net,
                     env_seed=env_test_seed
