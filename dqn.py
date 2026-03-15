@@ -65,6 +65,7 @@ def rl_dqn(
     gamma,
     epsilon,
     epsilon_decay,
+    buffer_len,
     num_episodes,
     log_episode,
     env_str,
@@ -101,13 +102,22 @@ def rl_dqn(
         params=policy_net.parameters(),
         lr=lr
     )
-    
+    replay_buffer = ReplayBuffer(
+        buffer_len=buffer_len,
+        observ_space=env.observation_space,
+        action_space=env.action_space
+    )
+
+
     with mlflow.start_run():
 
         mlflow.log_params({
             'env': env_str,
             'lr': lr,
             'gamma': gamma,
+            'epsilon': epsilon,
+            'epsilon_decay': epsilon_decay,
+            'buffer_len': buffer_len,
             'num_episodes': num_episodes,
             'device': device
         })

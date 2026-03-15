@@ -13,8 +13,8 @@ class ReplayBuffer():
         self.action_space = action_space
 
         # Pre-allocated buffers
-        self.observs = np.zeros((self.buffer_len, *self.observ_space))
-        self.actions = np.zeros((self.buffer_len, *self.action_space))
+        self.observs = np.zeros((self.buffer_len, self.observ_space.shape[0])) # Only valid for flat
+        self.actions = np.zeros((self.buffer_len, self.action_space.n)) # Only valid for discrete
         self.rewards = np.zeros((self.buffer_len))
         self.next_observs = np.zeros((self.buffer_len, *self.observ_space))
         self.dones = np.zeros((self.buffer_len))
