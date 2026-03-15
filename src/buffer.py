@@ -24,13 +24,20 @@ class ReplayBuffer():
 
         # Pointer for buffer position; used to determine next entry to overwrite
         self.pos = 0
-        self.full = False
+        self._full = False
 
 
     def reset(self):
         self.pos = 0
-        self.full = False
+        self._full = False
 
+    @property
+    def full(self):
+        return self._full
+
+    @property
+    def length(self):
+        return self.pos if not self._full else self.buffer_len
 
     def add(self, observ, action, reward, next_observ, done):
         # Overwriting entries at location
@@ -44,11 +51,11 @@ class ReplayBuffer():
         self.pos += 1
         if self.pos >= self.buffer_len:
             self.pos = 0
-            self.full = True
+            self._full = True
 
 
     def sample(self, batch_size):
-        upper_bound = self.buffer_len if self.full else self.pos
+        upper_bound = self.buffer_len if self._full else self.pos
         batch_idxs = np.random.randint(0, upper_bound, size=batch_size)
         return (
             self.observs[batch_idxs],

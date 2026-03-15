@@ -134,6 +134,7 @@ def rl_dqn(
 
         ## Training
 
+        global_steps = 0
         for episode in range(num_episodes):
             print(f'Episode {episode}', end='\r')
 
@@ -163,9 +164,9 @@ def rl_dqn(
                 observ = next_observ
                 ep_reward += reward
                 steps += 1
-                
-                # Checks for completion or cancellation
-                if done:
+                global_steps += 1
+
+                if replay_buffer.length >= batch_size:
                     ## Network Update
                     optimizer.zero_grad()
                     s_observs, s_actions, s_rewards, s_next_observs, s_dones = \
@@ -186,19 +187,21 @@ def rl_dqn(
                     loss.backward()
                     optimizer.step()
 
+                    mlflow.log_metrics({'loss': loss.item()}, step=global_steps)
+
                     # Copying back weights to target
                     target_net.load_state_dict(policy_net.state_dict())
-                    
+                
+                # Checks for completion or cancellation
+                if done:
                     # Log in MLFlow
                     mlflow.log_metrics(
                         {
-                            'loss': loss.item(),
                             'episode_reward': ep_reward,
                             'episode_steps': steps
                         },
                         step=episode
                     )
-
                     break
 
 
