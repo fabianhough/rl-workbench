@@ -1,3 +1,9 @@
+'''
+Inspired by SpinningUp and HuggingFace
+'''
+
+
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -32,13 +38,6 @@ class ModelRLReinforcePolicy(nn.Module):
         return Categorical(logits=logits)
 
     def act(self, obs):
-        '''
-        Args:
-            obs (torch.Tensor):   A given set of states
-
-        Returns:
-            (int, torch.Tensor):
-        '''
         # Sample an action
         dist = self.policy(obs)
         action = dist.sample()
@@ -48,9 +47,41 @@ class ModelRLReinforcePolicy(nn.Module):
 
 
 
+class Batch():
+    observs = []
+    actions = []
+    weights = []
+    rewards = []
+
+
 
 
 def run():
     pass
 
-    # REINFOR
+    # REINFORCE/VPG
+
+    # Hyperparameters
+    # NOTE: Turn into adjustable values
+    disc_gamma = 0.99
+    batch_size = 2000
+
+    batch_
+
+    ep_rewards = []
+
+    while True:
+        pass
+        # Get Action
+
+        # Step through environment
+
+        if done:
+
+            # Calculate the discounted rewards-to-go
+            # Generates: G_t = r_(t) + gamma*r_(t+1) + gamma^2*r_(t+2) + ...
+            for i in range(len(rewards))[::-1]:
+                rewards[i] += disc_gamma * rewards[i+1] if i+1 < len(rewards) else 0
+
+
+            # Calculate the loss
