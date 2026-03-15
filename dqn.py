@@ -199,6 +199,8 @@ def rl_dqn(
                         step=episode
                     )
 
+                    break
+
 
             epsilon = max(epsilon_end, epsilon * epsilon_decay)
 
