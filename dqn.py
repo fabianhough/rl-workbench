@@ -76,6 +76,7 @@ def rl_dqn(
     epsilon_end,
     buffer_len,
     batch_size,
+    target_update,
     num_episodes,
     log_episode,
     env_str,
@@ -189,8 +190,9 @@ def rl_dqn(
 
                     mlflow.log_metrics({'loss': loss.item()}, step=global_steps)
 
-                    # Copying back weights to target
-                    target_net.load_state_dict(policy_net.state_dict())
+                    if (episode + 1) % target_update == 0:
+                        # Copying back weights to target
+                        target_net.load_state_dict(policy_net.state_dict())
                 
                 # Checks for completion or cancellation
                 if done:
