@@ -107,7 +107,7 @@ def run():
                 ep_observs.append(observ.copy())
 
                 # Get Action
-                action = policy_net.act(observ)
+                action = policy_net.act(torch.tensor(observ, dtype=torch.float32))
                 ep_actions.append(action)
 
                 # Step through environment
@@ -137,9 +137,9 @@ def run():
 
         # Calculate the loss
         batch_loss = policy_net.loss(
-            observs=batch_observs,
-            actions=batch_actions,
-            weights=batch_returns
+            observs=torch.tensor(batch_observs, dtype=torch.float32),
+            actions=torch.tensor(batch_actions, dtype=torch.int32),
+            weights=torch.tensor(batch_returns, dtype=torch.float32)
         )
 
         # Batch Train
