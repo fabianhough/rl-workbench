@@ -39,14 +39,15 @@ def training_episode(env, net, ret_func, ret_kwargs, device='cpu'):
         ep_actions.append(action)
 
         # Step through environment
-        observ, reward, terminated, truncated, info = env.step(action)
+        next_observ, reward, terminated, truncated, info = env.step(action)
         ep_rewards.append(reward)
+
+        observ = next_observ
         
         # Checks for completion or cancellation
         if terminated or truncated:
             # Calculate returns
             ep_returns = ret_func(rewards=ep_rewards, **ret_kwargs)
 
-            # Reset env
-            observ, info = env.reset()
+            # Returning all episode
             return ep_observs, ep_actions, ep_returns
