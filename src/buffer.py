@@ -12,12 +12,15 @@ class ReplayBuffer():
         self.observ_space = observ_space
         self.action_space = action_space
 
+        self.observ_shape = self.observ_space.shape
+        self.action_dim = self.action_space.n
+
         # Pre-allocated buffers
-        self.observs = np.zeros((self.buffer_len, self.observ_space.shape[0])) # Only valid for flat
-        self.actions = np.zeros((self.buffer_len, self.action_space.n)) # Only valid for discrete
-        self.rewards = np.zeros((self.buffer_len))
-        self.next_observs = np.zeros((self.buffer_len, *self.observ_space))
-        self.dones = np.zeros((self.buffer_len))
+        self.observs = np.zeros((self.buffer_len, *self.observ_shape), dtype=self.observ_space.dtype) # Only valid for flat
+        self.actions = np.zeros((self.buffer_len, self.action_dim), dtype=self.action_space.dtype) # Only valid for discrete
+        self.rewards = np.zeros((self.buffer_len), dtype=np.float32)
+        self.next_observs = np.zeros((self.buffer_len, *self.observ_shape), dtype=self.observ_space.dtype)
+        self.dones = np.zeros((self.buffer_len), dtype=np.int32)
 
         # Pointer for buffer position; used to determine next entry to overwrite
         self.pos = 0
