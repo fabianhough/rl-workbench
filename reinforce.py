@@ -12,6 +12,7 @@ import torch.nn as nn
 from torch.distributions import Categorical
 from torch.optim import Adam
 
+device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
 from utils.image import save_gif
 
@@ -64,7 +65,7 @@ def evaluate(env, net, env_seed=42):
     frames = []
     while True:
         frames.append(env.render())
-        action = net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
+        action = net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0).to(device))
         observ, reward, terminated, truncated, info = env.step(action)
         total_rewards.append(reward)
         if terminated or truncated:
@@ -102,6 +103,7 @@ def rl_reinforce(
         output_dim=output_dim,
         hidden_dims=hidden_dims
     )
+    policy_net.to(device)
     optimizer = Adam(
         params=policy_net.parameters(),
         lr=lr
@@ -145,7 +147,7 @@ def rl_reinforce(
                     ep_observs.append(observ.copy().tolist()) # NOTE: Fixes list[np] warning
 
                     # Get Action
-                    action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
+                    action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0).to(device))
                     ep_actions.append(action)
 
                     # Step through environment
@@ -175,9 +177,9 @@ def rl_reinforce(
 
             # Calculate the loss
             batch_loss = policy_net.loss(
-                observs=torch.tensor(batch_observs, dtype=torch.float32),
-                actions=torch.tensor(batch_actions, dtype=torch.int32),
-                weights=torch.tensor(batch_returns, dtype=torch.float32)
+                observs=torch.tensor(batch_observs, dtype=torch.float32).to(device),
+                actions=torch.tensor(batch_actions, dtype=torch.int32).to(device),
+                weights=torch.tensor(batch_returns, dtype=torch.float32).to(device)
             )
 
             # Batch Train
@@ -195,7 +197,7 @@ def rl_reinforce(
             ## Log in MLFlow
             mlflow.log_metrics(
                 {
-                    'batch_loss': batch_loss,
+                    'batch_loss': batch_loss.item(),
                     'batch_len': len(batch_observs),
                     'eval_len': len(total_rewards),
                     'eval_reward': sum(total_rewards)
