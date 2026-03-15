@@ -2,6 +2,7 @@
 Inspired by SpinningUp and HuggingFace
 '''
 
+import os
 import yaml
 import mlflow
 import gymnasium as gym
@@ -10,6 +11,7 @@ import torch.nn as nn
 
 from torch.distributions import Categorical
 from torch.optim import Adam
+from PIL import Image
 
 
 
@@ -51,6 +53,14 @@ class ModelRLReinforcePolicy(nn.Module):
         # Calculating the negative loss
         return -(log_probs * weights).mean()
 
+
+
+def save_gif(frames: list, path: str, fps: int=30):
+    imgs = [Image.fromarray(f) for f in frames]
+    imgs[0].save(
+        path, save_all=True, append_images=imgs[1:],
+        loop=0, duration=1000//fps
+    )
 
 
 
@@ -165,10 +175,12 @@ def run(
 
             # TODO: Log batch loss, return, and length of batch
 
-            ## Test policy
+            ## Evaluate policy
             observ, info = env.reset(seed=env_test_seed)
             total_rewards = []
+            frames = []
             while True:
+                frames.append(env.render())
                 action = policy_net.act(torch.tensor(observ, dtype=torch.float32).unsqueeze(0))
                 observ, reward, terminated, truncated, info = env.step(action)
                 total_rewards.append(reward)
@@ -180,11 +192,15 @@ def run(
                 {
                     'batch_loss': batch_loss,
                     'batch_len': len(batch_observs),
-                    'test_len': len(total_rewards),
-                    'test_reward': sum(total_rewards)
+                    'eval_len': len(total_rewards),
+                    'eval_reward': sum(total_rewards)
                 },
                 step=e
             )
+            eval_gif_fn = f'eval_epoch_{e}.gif'
+            save_gif(frames=frames, path=eval_gif_fn)
+            mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
+            os.remove(eval_gif_fn)
 
             
 
