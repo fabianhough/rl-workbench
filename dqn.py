@@ -181,7 +181,13 @@ def rl_dqn(
 
                     # Calculating loss
                     with torch.no_grad():
-                        next_q_max, _ = target_net(s_next_observs).max(dim=1)
+                        # DQN
+                        # next_q_max, _ = target_net(s_next_observs).max(dim=1)
+
+                        # DDQN
+                        next_action_idxs = policy_net.policy(s_next_observs).argmax(dim=1)
+                        next_actions = target_net.policy(s_next_observs).gather(1, next_action_idxs.unsqueeze(1)).squeeze()
+
                         target_q = s_rewards + gamma * next_q_max * (1 - s_dones)
 
                     loss = policy_net.loss(s_observs, s_actions, target_q)
