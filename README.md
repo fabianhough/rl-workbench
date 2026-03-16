@@ -10,7 +10,7 @@ The repository is structured so that models, agents, and environments are compos
 |-----------|--------|-------------|
 | REINFORCE | ✓ | CartPole-v1 |
 | DQN | ✓ | CartPole-v1 |
-| A2C | | |
+| A2C | In Progress | |
 | PPO | | |
 | SAC | | |
 
