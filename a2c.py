@@ -212,23 +212,23 @@ def rl_a2c(
                 mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
                 os.remove(eval_gif_fn)
 
-                # Logging model
-                input_sample = torch.zeros(1, input_dim).to(device)
-                output_sample = policy_net.forward(input_sample).detach().cpu().numpy()
-                input_sample = input_sample.cpu().numpy()
-                signature = infer_signature(
-                    model_input=input_sample,
-                    model_output=output_sample
-                )
-                policy_net.cpu()
-                model_info = mlflow.pytorch.log_model(
-                    pytorch_model=policy_net,
-                    name=model_name,
-                    input_example=input_sample,
-                    signature=signature
-                )
-                policy_net.to(device)
-                mlflow.register_model(model_info.model_uri, model_name)
+        # Logging model
+        input_sample = torch.zeros(1, input_dim).to(device)
+        output_sample = policy_net.forward(input_sample).detach().cpu().numpy()
+        input_sample = input_sample.cpu().numpy()
+        signature = infer_signature(
+            model_input=input_sample,
+            model_output=output_sample
+        )
+        policy_net.cpu()
+        model_info = mlflow.pytorch.log_model(
+            pytorch_model=policy_net,
+            name=model_name,
+            input_example=input_sample,
+            signature=signature
+        )
+        policy_net.to(device)
+        mlflow.register_model(model_info.model_uri, model_name)
 
             
 
