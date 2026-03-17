@@ -17,6 +17,7 @@ logging.getLogger("mlflow.utils.requirements_utils").setLevel(logging.ERROR)
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.distributions import Categorical
 from torch.optim import Adam
 
@@ -78,7 +79,8 @@ def rl_a2c(
     policy_lr,
     value_lr,
     gamma,
-    entropy_coeff
+    entropy_coeff,
+    critic_coeff
 ):
 
     ### REINFORCE/VPG
@@ -113,7 +115,6 @@ def rl_a2c(
         params=value_net.parameters(),
         lr=value_lr
     )
-    value_loss = nn.MSELoss()
 
     with mlflow.start_run():
 
@@ -155,16 +156,18 @@ def rl_a2c(
                 policy_optimizer.zero_grad()
                 value_optimizer.zero_grad()
 
-                critic_td = reward + gamma * value_net(torch.tensor(next_observ, dtype=torch.float32).to(device))
+                critic_td = reward + gamma * (1 - done) * value_net(torch.tensor(next_observ, dtype=torch.float32).to(device))
                 critic_y_h = value_net(observ)
-                critic_loss = value_loss(critic_y_h, critic_td.detach())
-                advantage = critic_td - critic_y_h
+                critic_loss = F.mse_loss(critic_y_h, critic_td.detach())
+
+                advantage = (critic_td - critic_y_h).detach()
                 action = torch.tensor(action, dtype=torch.int64).to(device)
                 actor_dist = policy_net.policy(observ)
                 actor_log_prob = actor_dist.log_prob(action)
                 actor_entropy = actor_dist.entropy()
-                actor_loss = -(actor_log_prob * advantage.detach()).mean() - entropy_coeff * actor_entropy
-                loss = actor_loss + critic_loss
+                actor_loss = -(actor_log_prob * advantage).mean() - entropy_coeff * actor_entropy.mean()
+
+                loss = actor_loss + critic_coeff * critic_loss
 
                 loss.backward()
                 policy_optimizer.step()
