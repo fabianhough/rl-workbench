@@ -77,7 +77,8 @@ def rl_a2c(
     value_hidden_dims,
     policy_lr,
     value_lr,
-    gamma
+    gamma,
+    entropy_coeff
 ):
 
     ### REINFORCE/VPG
@@ -119,6 +120,7 @@ def rl_a2c(
         mlflow.log_params({
             'env': env_str,
             'gamma': gamma,
+            'entropy_coeff': entropy_coeff,
             'num_episodes': num_episodes,
             'device': device,
             'policy_hidden_dims': policy_hidden_dims,
@@ -158,7 +160,10 @@ def rl_a2c(
                 critic_loss = value_loss(critic_y_h, critic_td.detach())
                 advantage = critic_td - critic_y_h
                 action = torch.tensor(action, dtype=torch.int64).to(device)
-                actor_loss = -(policy_net.policy(observ).log_prob(action) * advantage.detach()).mean()
+                actor_dist = policy_net.policy(observ)
+                actor_log_prob = actor_dist.log_prob(action)
+                actor_entropy = actor_dist.entropy()
+                actor_loss = -(actor_log_prob * advantage.detach()).mean() - entropy_coeff * actor_entropy
                 loss = actor_loss + critic_loss
 
                 loss.backward()
@@ -169,7 +174,11 @@ def rl_a2c(
                     {
                         'loss': loss,
                         'actor_loss': actor_loss.item(),
-                        'critic_loss': critic_loss.item()
+                        'critic_loss': critic_loss.item(),
+                        'advantage': advantage.item(),
+                        'critic_td': critic_td.item(),
+                        'critic_y_h': critic_y_h.item(),
+                        'actor_log_prob': actor_log_prob
                     },
                     step=global_steps
                 )
