@@ -156,8 +156,8 @@ def rl_a2c(
                 critic_td = reward + gamma * value_net(torch.tensor(next_observ, dtype=torch.float32).to(device))
                 critic_y_h = value_net(observ)
                 critic_loss = value_loss(critic_y_h, critic_td.detach())
-                advantage = critic_y_h - critic_td
-                action = torch.tensor(action, dtype=torch.int32).to(device)
+                advantage = critic_td - critic_y_h
+                action = torch.tensor(action, dtype=torch.int64).to(device)
                 actor_loss = -(policy_net.policy(observ).log_prob(action) * advantage.detach()).mean()
                 loss = actor_loss + critic_loss
 
@@ -168,8 +168,8 @@ def rl_a2c(
                 mlflow.log_metrics(
                     {
                         'loss': loss,
-                        'actor_loss': actor_loss,
-                        'critic_loss': critic_loss
+                        'actor_loss': actor_loss.item(),
+                        'critic_loss': critic_loss.item()
                     },
                     step=global_steps
                 )
