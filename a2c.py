@@ -178,7 +178,8 @@ def rl_a2c(
                         'advantage': advantage.item(),
                         'critic_td': critic_td.item(),
                         'critic_y_h': critic_y_h.item(),
-                        'actor_log_prob': actor_log_prob
+                        'actor_log_prob': actor_log_prob,
+                        'actor_entropy': actor_entropy
                     },
                     step=global_steps
                 )
