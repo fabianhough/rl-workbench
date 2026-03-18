@@ -4,22 +4,14 @@ import numpy as np
 from gymnasium.spaces import Box, Discrete
 
 
-class BufferSampleMode(Enum):
-    RANDOM = 'random'
-    FULL = 'full'
 
-
-class Buffer():
+class ReplayBuffer():
     def __init__(self,
         buffer_len: int,
         observ_space: Box,
         action_space: Discrete | Box,
-        buffer_sample_mode: BufferSampleMode=BufferSampleMode.RANDOM
     ):
         '''
-        Replay Buffer:  Random Sample, Any buffer_len
-        n-step Buffer:  Full Sample, buffer_len == n
-        Batch Buffer:   Full Sample, buffer_len == batch_size
         '''
 
         assert isinstance(observ_space, Box)
@@ -87,31 +79,13 @@ class Buffer():
 
 
     def sample(self, batch_size):
-        if self.buffer_sample_mode == BufferSampleMode.RANDOM:
-            upper_bound = self.buffer_len if self._full else self.pos
-            batch_idxs = np.random.randint(0, upper_bound, size=batch_size)
-            return (
-                self.observs[batch_idxs],
-                self.actions[batch_idxs],
-                self.rewards[batch_idxs],
-                self.next_observs[batch_idxs],
-                self.dones[batch_idxs]
-            )
-        else:
-            return (
-                self.observs,
-                self.actions,
-                self.rewards,
-                self.next_observs,
-                self.dones
-            )
-
-
-class ReplayBuffer(Buffer):
-    def __init__(self, buffer_len, observ_space, action_space):
-        super().__init__(
-            buffer_len=buffer_len,
-            observ_space=observ_space,
-            action_space=action_space,
-            buffer_sample_mode=BufferSampleMode.RANDOM
+        upper_bound = self.buffer_len if self._full else self.pos
+        batch_idxs = np.random.randint(0, upper_bound, size=batch_size)
+        return (
+            self.observs[batch_idxs],
+            self.actions[batch_idxs],
+            self.rewards[batch_idxs],
+            self.next_observs[batch_idxs],
+            self.dones[batch_idxs]
         )
+

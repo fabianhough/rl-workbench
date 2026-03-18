@@ -5,8 +5,9 @@ Training
 from enum import Enum
 
 import mlflow
-from gymnasium import Env
+import gymnasium as gym
 
+from .buffer import ReplayBuffer
 
 
 class TrainFreq(Enum):
@@ -15,22 +16,40 @@ class TrainFreq(Enum):
     BATCH = 'batch'
 
 
+class SamplingType(Enum):
+    REPLAY = 'replay'
+    NSTEP = 'nstep'
+    BATCH = 'batch'
+
+
 
 
 def train(
     agent,
-    env: Env,
-    train_freq: TrainFreq = TrainFreq.STEP,
+    env_name,
     num_episodes: int=1,
-    batch_size: int=1,
-    mlflow_log: bool=True
+    num_batches: int=1,
+    train_freq: TrainFreq=TrainFreq.STEP,
+    sampling: SamplingType=SamplingType.NSTEP,
+    sample_size: int=1,
+    mlflow_log: bool=True,
+    env_eval_seed: int=42
 ):
     '''
 
     '''
 
+    env = gym.make(id=env_name)
+
+    if sampling == SamplingType.NSTEP:
+        pass
+    elif sampling == SamplingType.REPLAY:
+        pass
+    elif sampling == SamplingType.BATCH:
+        pass
+
     global_steps = 0
-    for batch in range(1, batch_size+1):
+    for batch in range(1, num_batches+1):
 
 
 
@@ -48,7 +67,7 @@ def train(
                 done = terminated or truncated
 
                 if train_freq == TrainFreq.STEP:
-                    pass
+                    agent.train()
 
                 ep_rewards.append(reward)
                 steps += 1
@@ -64,7 +83,7 @@ def train(
                         }, step=episode)
 
                     if train_freq == TrainFreq.EPISODE:
-                        pass
+                        agent.train()
 
                     break
                 else:
@@ -72,8 +91,6 @@ def train(
 
 
         if train_freq == TrainFreq.BATCH:
-            pass
-
-
+            agent.train()
 
 
