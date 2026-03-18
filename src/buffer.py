@@ -1,5 +1,6 @@
 
 from enum import Enum
+from collections import deque
 import numpy as np
 from gymnasium.spaces import Box, Discrete
 
@@ -93,7 +94,7 @@ class RolloutBuffer():
     def __init__(self):
         '''
         '''
-        
+
         self.observs = []
         self.actions = []
         self.rewards = []
@@ -125,5 +126,39 @@ class RolloutBuffer():
 
 
 class NStepBuffer():
-    pass
+    def __init__(self, n: int):
+        self.n = n
+
+        self.observs = deque(maxlen=n)
+        self.actions = deque(maxlen=n)
+        self.rewards = deque(maxlen=n)
+        self.next_observs = deque(maxlen=n)
+        self.dones = deque(maxlen=n)
+
+    @property
+    def full(self):
+        return len(self.observs) == self.n
+
+    def add(observ, action, reward, next_observ, done):
+        self.observs.append(observ)
+        self.actions.append(action)
+        self.rewards.append(reward)
+        self.next_observs.append(next_observ)
+        self.dones.append(done)
+
+    def reset(self):
+        self.observs = deque(maxlen=n)
+        self.actions = deque(maxlen=n)
+        self.rewards = deque(maxlen=n)
+        self.next_observs = deque(maxlen=n)
+        self.dones = deque(maxlen=n)
+
+    def sample(self):
+        return (
+            np.array(self.observs),
+            np.array(self.actions),
+            np.array(self.rewards, dtype=np.float32),
+            np.array(self.next_observs),
+            np.array(self.dones, dtype=np.float32)
+        )
 
