@@ -19,7 +19,6 @@ class ReplayBuffer():
 
         # Total size of buffer
         self.buffer_len = buffer_len
-        self.buffer_sample_mode = buffer_sample_mode
 
         # Pre-allocated buffers
         self.observs = np.zeros((self.buffer_len, *observ_space.shape), dtype=observ_space.dtype)
@@ -88,4 +87,12 @@ class ReplayBuffer():
             self.next_observs[batch_idxs],
             self.dones[batch_idxs]
         )
+
+
+class BatchBuffer():
+    pass
+
+
+class NStepBuffer():
+    pass
 
