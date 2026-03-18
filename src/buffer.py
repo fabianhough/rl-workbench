@@ -4,6 +4,9 @@ import numpy as np
 
 class ReplayBuffer():
     def __init__(self, buffer_len, observ_space, action_space):
+        '''
+        
+        '''
 
         # Total size of buffer
         self.buffer_len = buffer_len
@@ -27,16 +30,31 @@ class ReplayBuffer():
         self._full = False
 
 
-    def reset(self):
+    def reset(self) -> None:
+        '''
+        Resets the buffer and effectively empties it out
+        '''
         self.pos = 0
         self._full = False
 
     @property
-    def full(self):
+    def full(self) -> bool:
+        '''
+        Boolean property to show if buffer is full/buffer_len
+
+        Returns:
+            (bool): Boolean flag for buffer fill
+        '''
         return self._full
 
     @property
-    def length(self):
+    def length(self) -> int:
+        '''
+        Integer property for fill length of buffer
+
+        Returns:
+            (int):  Length of buffer
+        '''
         return self.pos if not self._full else self.buffer_len
 
     def add(self, observ, action, reward, next_observ, done):
