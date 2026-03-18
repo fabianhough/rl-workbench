@@ -89,8 +89,39 @@ class ReplayBuffer():
         )
 
 
-class BatchBuffer():
-    pass
+class RolloutBuffer():
+    def __init__(self):
+        '''
+        '''
+        
+        self.observs = []
+        self.actions = []
+        self.rewards = []
+        self.next_observs = []
+        self.dones = []
+
+    def add(observ, action, reward, next_observ, done):
+        self.observs.append(observ)
+        self.actions.append(action)
+        self.rewards.append(reward)
+        self.next_observs.append(next_observ)
+        self.dones.append(done)
+
+    def reset(self):
+        self.observs = []
+        self.actions = []
+        self.rewards = []
+        self.next_observs = []
+        self.dones = []
+
+    def sample(self):
+        return (
+            np.array(self.observs),
+            np.array(self.actions),
+            np.array(self.rewards, dtype=np.float32),
+            np.array(self.next_observs),
+            np.array(self.dones, dtype=np.float32)
+        )
 
 
 class NStepBuffer():
