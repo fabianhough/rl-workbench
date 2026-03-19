@@ -32,7 +32,7 @@ def evaluate_episode(agent, env, env_seed=42):
     frames = []
     while True:
         frames.append(env.render())
-        action = agent.act(observ)
+        action = agent.act(observ, random=False)
         observ, reward, terminated, truncated, info = env.step(action)
         total_rewards.append(reward)
         if terminated or truncated:
@@ -136,6 +136,8 @@ def train(
                 else:
                     # Setting next state to current
                     observ = next_observ
+
+            agent.post_episode()
 
             # Evaluate Agent
             total_rewards, frames = evaluate_episode(
