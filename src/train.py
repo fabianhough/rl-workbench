@@ -82,7 +82,7 @@ def train(
 
                 # Training per step
                 if train_freq == TrainFreq.STEP:
-                    agent.train()
+                    agent.train(buffer.sample())
 
                 # Incrementing rewards and steps
                 ep_rewards.append(reward)
@@ -103,7 +103,7 @@ def train(
 
                     # Training per episode
                     if train_freq == TrainFreq.EPISODE:
-                        agent.train()
+                        agent.train(buffer.sample())
 
                     # Ending the episode
                     break
@@ -114,6 +114,6 @@ def train(
 
         # Training per batch
         if train_freq == TrainFreq.BATCH:
-            agent.train()
+            agent.train(buffer.sample())
 
 
