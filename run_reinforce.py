@@ -25,7 +25,7 @@ if __name__ == '__main__':
     mlflow.set_experiment(config.pop('experiment'))
     
     # Generating Environment
-    env = gym.make(id=config.pop('env_str'))
+    env = gym.make(id=config.pop('env_str'), render_mode='rgb_array')
 
     # Generating agent
     device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
