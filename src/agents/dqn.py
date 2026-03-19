@@ -1,3 +1,6 @@
+
+import random
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -5,25 +8,32 @@ import numpy as np
 
 from torch.optim import Adam
 
+from .base import Agent
 from ..model import SimpleLinearNet
 
 
 
-class AgentDQN():
+class AgentDQN(Agent):
     def __init__(self,
         input_dim: int,
         output_dim: int,
         hidden_dims: list,
         activation=nn.ReLU,
         device='cpu',
-        gamma=0.995,
-        lr=3e-4
+        lr=3e-4,
+        gamma=0.99,
+        epsilon_start=1.0,
+        epsilon_end=0.01,
+        epsilon_decay=0.995
     ):
         '''
         '''
 
         self._device = device
         self.gamma = gamma
+        self.epsilon = epsilon_start
+        self._epsilon_end = epsilon_end
+        self._epsilon_decay = epsilon_decay
 
         self.net = SimpleLinearNet(
             input_dim=input_dim,
@@ -43,14 +53,17 @@ class AgentDQN():
         q_vals = self.forward(observs)
         return q_vals
 
-    def act(self, observ):
+    def act(self, observ, random=True, **kwargs):
         self.net.eval()
         with torch.no_grad():
             # Prepare observ
             observ_tensor = torch.tensor(observ, dtype=torch.float32).to(self._device)
 
             # Sample an action
-            action = self.policy(observ_tensor.unsqueeze(0)).argmax().item()
+            if random and random.random() < epsilon:
+                action = env.action_space.sample()
+            else:
+                action = self.policy(observ_tensor.unsqueeze(0)).argmax().item()
         self.net.train()
         return action
 

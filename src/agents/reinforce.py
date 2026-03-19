@@ -6,6 +6,7 @@ import numpy as np
 from torch.distributions import Categorical
 from torch.optim import Adam
 
+from .base import Agent
 from ..model import SimpleLinearNet
 
 
@@ -19,7 +20,7 @@ def discounted_rewards_to_go(rewards, dones, gamma):
     return returns
 
 
-class AgentReinforce():
+class AgentReinforce(Agent):
     def __init__(self,
         input_dim: int,
         output_dim: int,
@@ -55,7 +56,7 @@ class AgentReinforce():
         # Includes Softmax using log-sum-exp
         return Categorical(logits=logits)
 
-    def act(self, observ):
+    def act(self, observ, **kwargs):
         self.net.eval()
         with torch.no_grad():
             # Prepare observ
