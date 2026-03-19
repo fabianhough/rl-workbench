@@ -98,6 +98,9 @@ class AgentDQN(Agent):
         loss.backward()
         optimizer.step()
 
+        # Returning loss metrics
+        return {'loss': loss.item()}
+
     def loss(self, observs, actions, target_q):
         # observs (#, *observ_space)
         # actions (#, )
