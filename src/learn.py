@@ -2,12 +2,14 @@
 Training
 '''
 
+import os
 from enum import Enum
 
 import mlflow
 from gymnasium import Env
 
 from .buffer import ReplayBuffer, RolloutBuffer, NStepBuffer
+from .utils.image import save_gif
 
 
 class TrainFreq(Enum):
@@ -142,12 +144,12 @@ def train(
 
 
         # Evaluate agent
-        if (episode) % episodes_per_eval == 0:
+        if (episode*batch) % episodes_per_eval == 0:
             # Run eval
             total_rewards, frames = evaluate_episode(
                 agent=agent,
                 env=env,
-                env_seed=env_test_seed
+                env_seed=env_eval_seed
             )
 
             # Saving gif of performance
