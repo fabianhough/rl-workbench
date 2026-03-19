@@ -143,13 +143,19 @@ def train(
                 buffer.reset()
 
 
-        # Evaluate agent
         if (episode*batch) % episodes_per_eval == 0:
-            # Run eval
+            # Evaluate agent
             total_rewards, frames = evaluate_episode(
                 agent=agent,
                 env=env,
                 env_seed=env_eval_seed
+            )
+
+            mlflow.log_metric(
+                {
+                    'eval_reward': sum(total_rewards),
+                    'eval_steps': len(total_rewards)
+                }
             )
 
             # Saving gif of performance
