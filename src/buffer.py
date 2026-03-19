@@ -9,6 +9,7 @@ from gymnasium.spaces import Box, Discrete
 class ReplayBuffer():
     def __init__(self,
         buffer_len: int,
+        sample_size: int,
         observ_space: Box,
         action_space: Discrete | Box,
     ):
@@ -20,6 +21,7 @@ class ReplayBuffer():
 
         # Total size of buffer
         self.buffer_len = buffer_len
+        self.sample_size = sample_size
 
         # Pre-allocated buffers
         self.observs = np.zeros((self.buffer_len, *observ_space.shape), dtype=observ_space.dtype)
@@ -78,15 +80,15 @@ class ReplayBuffer():
             self._full = True
 
 
-    def sample(self, batch_size):
+    def sample(self):
         upper_bound = self.buffer_len if self._full else self.pos
-        batch_idxs = np.random.randint(0, upper_bound, size=batch_size)
+        sample_idxs = np.random.randint(0, upper_bound, size=self.sample_size)
         return (
-            self.observs[batch_idxs],
-            self.actions[batch_idxs],
-            self.rewards[batch_idxs],
-            self.next_observs[batch_idxs],
-            self.dones[batch_idxs]
+            self.observs[sample_idxs],
+            self.actions[sample_idxs],
+            self.rewards[sample_idxs],
+            self.next_observs[sample_idxs],
+            self.dones[sample_idxs]
         )
 
 

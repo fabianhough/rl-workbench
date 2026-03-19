@@ -50,7 +50,8 @@ def train(
         buffer = NStepBuffer(n=sample_size)
     elif sampling == SamplingType.REPLAY:
         buffer = ReplayBuffer(
-            buffer_len=sample_size,
+            buffer_len=10000,
+            sample_size=sample_size,
             observ_space=env.observation_space,
             action_space=env.action_space
         )
@@ -75,6 +76,9 @@ def train(
                 # Step through environment with action
                 next_observ, reward, terminated, truncated, info = env.step(action)
                 done = terminated or truncated
+
+                # Adding experience to buffer
+                buffer.add(observ, action, reward, next_observ, done)
 
                 # Training per step
                 if train_freq == TrainFreq.STEP:
@@ -101,8 +105,10 @@ def train(
                     if train_freq == TrainFreq.EPISODE:
                         agent.train()
 
+                    # Ending the episode
                     break
                 else:
+                    # Setting next state to current
                     observ = next_observ
 
 
