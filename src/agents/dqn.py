@@ -115,3 +115,6 @@ class AgentDQN(Agent):
         # Generating the loss
         loss = F.mse_loss(input=q_vals, target=target_q)
         return loss
+
+    def post_episode(self):
+        self.epsilon = max(self._epsilon_end, self.epsilon * self._epsilon_decay)
