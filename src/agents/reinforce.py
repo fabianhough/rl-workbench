@@ -26,7 +26,7 @@ class AgentReinforce():
         hidden_dims: list,
         activation=nn.ReLU,
         device='cpu',
-        gamma=0.995,
+        gamma=0.99,
         lr=3e-4
     ):
         '''
