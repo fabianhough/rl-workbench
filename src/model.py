@@ -4,7 +4,7 @@ import torch.nn as nn
 
 
 
-class SimpleLinearPolicyNet(nn.Module):
+class SimpleLinearNet(nn.Module):
     def __init__(self, input_dim: int, output_dim: int, hidden_dims: list, activation=nn.ReLU):
         '''
         '''
