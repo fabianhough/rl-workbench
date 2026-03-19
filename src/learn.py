@@ -5,7 +5,7 @@ Training
 from enum import Enum
 
 import mlflow
-import gymnasium as gym
+from gymnasium import Env
 
 from .buffer import ReplayBuffer, RolloutBuffer, NStepBuffer
 
@@ -42,7 +42,7 @@ def evaluate_episode(agent, env, env_seed=42):
 
 def train(
     agent,
-    env_name,
+    env: Env,
     num_episodes: int=1,
     num_batches: int=1,
     train_freq: TrainFreq=TrainFreq.STEP,
@@ -55,9 +55,6 @@ def train(
     '''
 
     '''
-
-    # Generating Environment
-    env = gym.make(id=env_name)
 
     # Creating buffer based on Sampling Type
     buffer = None
