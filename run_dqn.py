@@ -44,7 +44,8 @@ if __name__ == '__main__':
             lr=config.pop('lr'),
             epsilon_start=config.pop('epsilon_start'),
             epsilon_end=config.pop('epsilon_end'),
-            epsilon_decay=config.pop('epsilon_decay')
+            epsilon_decay=config.pop('epsilon_decay'),
+            target_update_freq=config.pop('target_update_freq')
         )
 
         # Setting up training frequency and sampling type

@@ -24,7 +24,8 @@ class AgentDQN(Agent):
         gamma=0.99,
         epsilon_start=1.0,
         epsilon_end=0.01,
-        epsilon_decay=0.995
+        epsilon_decay=0.995,
+        target_update_freq=10
     ):
         '''
         '''
@@ -34,23 +35,36 @@ class AgentDQN(Agent):
         self.epsilon = epsilon_start
         self._epsilon_end = epsilon_end
         self._epsilon_decay = epsilon_decay
+        self._tgt_update_freq = target_update_freq
+        self._tgt_counter = 0
 
-        self.net = SimpleLinearNet(
+        self.q_net = SimpleLinearNet(
+            input_dim=input_dim,
+            output_dim=output_dim,
+            hidden_dims=hidden_dims,
+            activation=activation
+        )
+        self.tgt_net = SimpleLinearNet(
             input_dim=input_dim,
             output_dim=output_dim,
             hidden_dims=hidden_dims,
             activation=activation
         )
         self.net.to(self._device)
+        self.tgt_net.to(self._device)
+        self._tgt_update()
 
         self.optimizer = Adam(
             params=self.net.parameters(),
             lr=lr
         )
 
+    def _tgt_update(self):
+        self.tgt_net.load_state_dict(self.q_net.state_dict())
+
     def policy(self, observs):
         # Generate q values
-        q_vals = self.forward(observs)
+        q_vals = self.q_net.forward(observs)
         return q_vals
 
     def act(self, observ, random=True, **kwargs):
@@ -87,16 +101,22 @@ class AgentDQN(Agent):
             # next_q_max, _ = self.net.forward(s_next_observs).max(dim=1)
 
             # DDQN
-            next_q_idxs = self.net.policy(next_observs).argmax(dim=1)
-            next_q_max = self.net.policy(next_observs).gather(1, next_q_idxs.unsqueeze(1)).squeeze()
+            next_q_idxs = self.q_net.policy(next_observs).argmax(dim=1)
+            next_q_max = self.tgt_net.policy(next_observs).gather(1, next_q_idxs.unsqueeze(1)).squeeze()
 
             target_q = rewards + self.gamma * next_q_max * (1 - dones)
 
-        loss = self.net.loss(observs, actions, target_q)
+        loss = self.q_net.loss(observs, actions, target_q)
 
         # Back-propagation
         loss.backward()
         optimizer.step()
+
+        # Target update
+        self._tgt_counter += 1
+        if self._tgt_counter >= self._tgt_update_freq:
+            self._tgt_update()
+            self._tgt_counter = 0
 
         # Returning loss metrics
         return {'loss': loss.item()}
