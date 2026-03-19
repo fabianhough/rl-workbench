@@ -120,7 +120,10 @@ def train(
                     # Training per episode
                     if train_freq == TrainFreq.EPISODE:
                         train_metrics = agent.train(buffer.sample())
-                        mlflow.log_metrics(train_metrics, step=global_steps)
+                        mlflow.log_metrics(
+                            train_metrics,
+                            step=batch*num_episodes+episode
+                        )
                         if reset_on_sample:
                             buffer.reset()
 
@@ -152,7 +155,7 @@ def train(
         # Training per batch
         if train_freq == TrainFreq.BATCH:
             train_metrics = agent.train(buffer.sample())
-            mlflow.log_metrics(train_metrics, step=global_steps)
+            mlflow.log_metrics(train_metrics, step=batch)
             if reset_on_sample:
                 buffer.reset()
 
