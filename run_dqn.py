@@ -40,6 +40,7 @@ if __name__ == '__main__':
             output_dim=env.action_space.n,
             hidden_dims=config.pop('hidden_dims'),
             device=device,
+            env=env,
             gamma=config.pop('gamma'),
             lr=config.pop('lr'),
             epsilon_start=config.pop('epsilon_start'),

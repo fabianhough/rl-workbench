@@ -18,6 +18,7 @@ class AgentDQN(Agent):
         input_dim: int,
         output_dim: int,
         hidden_dims: list,
+        env,
         activation=nn.ReLU,
         device='cpu',
         lr=3e-4,
@@ -37,6 +38,7 @@ class AgentDQN(Agent):
         self._epsilon_decay = epsilon_decay
         self._tgt_update_freq = target_update_freq
         self._tgt_counter = 0
+        self._env = env
 
         self.q_net = SimpleLinearNet(
             input_dim=input_dim,
@@ -50,12 +52,12 @@ class AgentDQN(Agent):
             hidden_dims=hidden_dims,
             activation=activation
         )
-        self.net.to(self._device)
+        self.q_net.to(self._device)
         self.tgt_net.to(self._device)
         self._tgt_update()
 
         self.optimizer = Adam(
-            params=self.net.parameters(),
+            params=self.q_net.parameters(),
             lr=lr
         )
 
@@ -67,18 +69,18 @@ class AgentDQN(Agent):
         q_vals = self.q_net.forward(observs)
         return q_vals
 
-    def act(self, observ, random=True, **kwargs):
-        self.net.eval()
+    def act(self, observ, explore=True, **kwargs):
+        self.q_net.eval()
         with torch.no_grad():
             # Prepare observ
             observ_tensor = torch.tensor(observ, dtype=torch.float32).to(self._device)
 
             # Sample an action
-            if random and random.random() < epsilon:
-                action = env.action_space.sample()
+            if explore and random.random() < self.epsilon:
+                action = self._env.action_space.sample()
             else:
                 action = self.policy(observ_tensor.unsqueeze(0)).argmax().item()
-        self.net.train()
+        self.q_net.train()
         return action
 
     def train(self, sample):
@@ -92,25 +94,25 @@ class AgentDQN(Agent):
         observs = torch.tensor(observs).to(self._device)
         actions = torch.tensor(actions).to(self._device)
         rewards = torch.tensor(rewards).to(self._device)
-        next_observs = torch.tensor(rewards).to(self._device)
+        next_observs = torch.tensor(next_observs).to(self._device)
         dones = torch.tensor(dones).to(self._device)
 
         # Calculating loss
         with torch.no_grad():
             # DQN
-            # next_q_max, _ = self.net.forward(s_next_observs).max(dim=1)
+            # next_q_max, _ = self.q_net.forward(s_next_observs).max(dim=1)
 
             # DDQN
-            next_q_idxs = self.q_net.policy(next_observs).argmax(dim=1)
-            next_q_max = self.tgt_net.policy(next_observs).gather(1, next_q_idxs.unsqueeze(1)).squeeze()
+            next_q_idxs = self.q_net.forward(next_observs).argmax(dim=1)
+            next_q_max = self.tgt_net.forward(next_observs).gather(1, next_q_idxs.unsqueeze(1)).squeeze()
 
             target_q = rewards + self.gamma * next_q_max * (1 - dones)
 
-        loss = self.q_net.loss(observs, actions, target_q)
+        loss = self.loss(observs, actions, target_q)
 
         # Back-propagation
         loss.backward()
-        optimizer.step()
+        self.optimizer.step()
 
         # Target update
         self._tgt_counter += 1
@@ -133,7 +135,7 @@ class AgentDQN(Agent):
         q_vals = q_vals.gather(dim=1, index=actions.unsqueeze(1)).squeeze()
 
         # Generating the loss
-        loss = F.mse_loss(input=q_vals, target=target_q)
+        loss = F.mse_loss(input=q_vals, target=target_q.squeeze())
         return loss
 
     def post_episode(self):
