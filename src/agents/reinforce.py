@@ -1,5 +1,10 @@
 
 import torch
+import torch.nn as nn
+
+from torch.distributions import Categorical
+from torch.optim import Adam
+
 from ..model import SimpleLinearNet
 
 
