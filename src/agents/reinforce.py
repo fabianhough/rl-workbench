@@ -1,6 +1,7 @@
 
 import torch
 import torch.nn as nn
+import numpy as np
 
 from torch.distributions import Categorical
 from torch.optim import Adam
@@ -80,6 +81,11 @@ class AgentReinforce():
 
         # Discounted returns to go
         returns = discounted_rewards_to_go(rewards, dones, self.gamma)
+
+        # Preparing tensors
+        observs = torch.tensor(observs).to(self._device)
+        actions = torch.tensor(actions).to(self._device)
+        returns = torch.tensor(returns).to(self._device)
 
         # Calculating loss
         loss = self.loss(observs, actions, returns)
