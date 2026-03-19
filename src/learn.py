@@ -142,7 +142,7 @@ def train(
             )
 
             # Log evaluation metrics
-            mlflow.log_metric(
+            mlflow.log_metrics(
                 {
                     'eval_reward': sum(total_rewards),
                     'eval_steps': len(total_rewards)
