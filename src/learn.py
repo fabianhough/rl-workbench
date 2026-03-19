@@ -52,7 +52,7 @@ def train(
     sample_size: int=1,
     mlflow_log: bool=True,
     env_eval_seed: int=42,
-    episodes_per_eval: int=100
+    episodes_per_visual: int=100
 ):
     '''
 
@@ -134,6 +134,20 @@ def train(
                     # Setting next state to current
                     observ = next_observ
 
+            # Evaluate Agent
+            total_rewards, frames = evaluate_episode(
+                agent=agent,
+                env=env,
+                env_seed=env_eval_seed
+            )
+
+            # Log evaluation metrics
+            mlflow.log_metric(
+                {
+                    'eval_reward': sum(total_rewards),
+                    'eval_steps': len(total_rewards)
+                }
+            )
 
         # Training per batch
         if train_freq == TrainFreq.BATCH:
@@ -143,19 +157,12 @@ def train(
                 buffer.reset()
 
 
-        if (episode*batch) % episodes_per_eval == 0:
-            # Evaluate agent
+        if (episode*batch) % episodes_per_visual == 0:
+            # Evaluate agent for gif
             total_rewards, frames = evaluate_episode(
                 agent=agent,
                 env=env,
                 env_seed=env_eval_seed
-            )
-
-            mlflow.log_metric(
-                {
-                    'eval_reward': sum(total_rewards),
-                    'eval_steps': len(total_rewards)
-                }
             )
 
             # Saving gif of performance
