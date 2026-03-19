@@ -3,6 +3,7 @@ import yaml
 
 import torch
 import mlflow
+import gymnasium as gym
 
 from src.agents import AgentReinforce
 from src.learn import train, TrainFreq, SamplingType
@@ -15,9 +16,11 @@ from src.learn import train, TrainFreq, SamplingType
 
 
 if __name__ == '__main__':
-    with open('reinforce-config.yaml', 'r') as f:
+    # Loading config
+    with open('config-reinforce.yaml', 'r') as f:
         config = yaml.safe_load(f)
 
+    # Configuring mlflow
     mlflow.set_tracking_uri(config.pop('tracking_uri'))
     mlflow.set_experiment(config.pop('experiment'))
     
@@ -34,8 +37,6 @@ if __name__ == '__main__':
         gamma=config.pop('gamma'),
         lr=config.pop('lr')
     )
-
-    raise Exception
 
     # Train
     config['train_freq'] = TrainFreq(config['train_freq'])
