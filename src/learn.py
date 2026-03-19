@@ -23,6 +23,22 @@ class SamplingType(Enum):
 
 
 
+def evaluate_episode(agent, env, env_seed=42):
+    ## Evaluate policy
+    observ, info = env.reset(seed=env_seed)
+    total_rewards = []
+    frames = []
+    while True:
+        frames.append(env.render())
+        action = agent.act(observ)
+        observ, reward, terminated, truncated, info = env.step(action)
+        total_rewards.append(reward)
+        if terminated or truncated:
+            break
+
+    return total_rewards, frames
+
+
 
 def train(
     agent,
@@ -33,7 +49,8 @@ def train(
     sampling: SamplingType=SamplingType.ROLLOUT,
     sample_size: int=1,
     mlflow_log: bool=True,
-    env_eval_seed: int=42
+    env_eval_seed: int=42,
+    episodes_per_eval: int=100
 ):
     '''
 
@@ -84,7 +101,8 @@ def train(
 
                 # Training per step
                 if train_freq == TrainFreq.STEP:
-                    agent.train(buffer.sample())
+                    train_metrics = agent.train(buffer.sample())
+                    mlflow.log_metrics(train_metrics, step=global_steps)
 
                 # Incrementing rewards and steps
                 ep_rewards.append(reward)
@@ -101,7 +119,8 @@ def train(
 
                     # Training per episode
                     if train_freq == TrainFreq.EPISODE:
-                        agent.train(buffer.sample())
+                        train_metrics = agent.train(buffer.sample())
+                        mlflow.log_metrics(train_metrics, step=global_steps)
                         if reset_on_sample:
                             buffer.reset()
 
@@ -118,8 +137,28 @@ def train(
 
         # Training per batch
         if train_freq == TrainFreq.BATCH:
-            agent.train(buffer.sample())
+            train_metrics = agent.train(buffer.sample())
+            mlflow.log_metrics(train_metrics, step=global_steps)
             if reset_on_sample:
                 buffer.reset()
+
+
+        # Evaluate agent
+        if (episode) % episodes_per_eval == 0:
+            # Run eval
+            total_rewards, frames = evaluate_episode(
+                agent=agent,
+                env=env,
+                env_seed=env_test_seed
+            )
+
+            # Saving gif of performance
+            eval_gif_fn = f'eval_{batch:03d}_{episode:03d}.gif'
+            save_gif(frames=frames, path=eval_gif_fn)
+            mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
+            os.remove(eval_gif_fn)
+
+        # Register Model
+
 
 
