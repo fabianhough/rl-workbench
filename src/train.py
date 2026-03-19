@@ -44,8 +44,10 @@ def train(
 
     # Creating buffer based on Sampling Type
     buffer = None
+    reset_on_sample = False
     if sampling == SamplingType.ROLLOUT:
         buffer = RolloutBuffer()
+        reset_on_sample = True
     elif sampling == SamplingType.NSTEP:
         buffer = NStepBuffer(n=sample_size)
     elif sampling == SamplingType.REPLAY:
@@ -90,10 +92,6 @@ def train(
                 global_steps += 1
 
                 if done:
-                    # Resetting environment and initial variables
-                    observ, info = env.reset()
-                    steps = 0
-
                     # Logging episode specific metrics
                     if mlflow_log:
                         mlflow.log_metrics({
@@ -104,6 +102,12 @@ def train(
                     # Training per episode
                     if train_freq == TrainFreq.EPISODE:
                         agent.train(buffer.sample())
+                        if reset_on_sample:
+                            buffer.reset()
+
+                    # Resetting environment and initial variables
+                    observ, info = env.reset()
+                    steps = 0
 
                     # Ending the episode
                     break
@@ -115,5 +119,7 @@ def train(
         # Training per batch
         if train_freq == TrainFreq.BATCH:
             agent.train(buffer.sample())
+            if reset_on_sample:
+                buffer.reset()
 
 
