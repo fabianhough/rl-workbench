@@ -101,7 +101,7 @@ class RolloutBuffer():
         self.next_observs = []
         self.dones = []
 
-    def add(observ, action, reward, next_observ, done):
+    def add(self, observ, action, reward, next_observ, done):
         self.observs.append(observ)
         self.actions.append(action)
         self.rewards.append(reward)
@@ -139,7 +139,7 @@ class NStepBuffer():
     def full(self):
         return len(self.observs) == self.n
 
-    def add(observ, action, reward, next_observ, done):
+    def add(self, observ, action, reward, next_observ, done):
         self.observs.append(observ)
         self.actions.append(action)
         self.rewards.append(reward)
