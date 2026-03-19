@@ -76,6 +76,7 @@ def train(
     global_steps = 0
     for batch in range(1, num_batches+1):
         for episode in range(1, num_episodes+1):
+            print(f'Batch: {batch}\tEpisode {episode}', end='\r')
 
             # Trajectory Rewards
             ep_rewards = []
