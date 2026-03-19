@@ -55,14 +55,14 @@ class AgentReinforce():
         return Categorical(logits=logits)
 
     def act(self, observ):
-        self.model.eval()
+        self.net.eval()
         with torch.no_grad():
             # Prepare observ
             observ_tensor = torch.tensor(observ, dtype=torch.float32).to(self._device)
 
             # Sample an action
             action = self.policy(observ_tensor.unsqueeze(0)).sample().item()
-        self.model.train()
+        self.net.train()
         return action
 
     def loss(self, observs, actions, weights):
