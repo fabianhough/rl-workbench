@@ -76,8 +76,8 @@ def train(
 
     # Global step tracking
     global_steps = 0
-    for batch in range(1, num_batches+1):
-        for episode in range(1, num_episodes+1):
+    for batch in range(num_batches):
+        for episode in range(num_episodes):
             print(f'Batch: {batch:03d}\tEpisode {episode:04d}', end='\r')
 
             # Trajectory Rewards
@@ -146,7 +146,7 @@ def train(
                 {
                     'eval_reward': sum(total_rewards),
                     'eval_steps': len(total_rewards)
-                }
+                }, step=batch*num_episodes + episode
             )
 
         # Training per batch
@@ -157,7 +157,7 @@ def train(
                 buffer.reset()
 
 
-        if (episode*batch) % episodes_per_visual == 0:
+        if ((episode+1)*(batch+1)) % episodes_per_visual == 0:
             # Evaluate agent for gif
             total_rewards, frames = evaluate_episode(
                 agent=agent,
