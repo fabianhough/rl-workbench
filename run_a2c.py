@@ -1,0 +1,36 @@
+
+import yaml
+
+import torch
+import mlflow
+import gymnasium as gym
+
+from src import experiment
+from src.agents import AgentA2C
+from src.learn import train, TrainFreq, SamplingType
+
+
+
+def agent_builder_a2c(config, env, device):
+    agent = AgentA2C(
+        input_dim=env.observation_space.shape[0],
+        output_dim=env.action_space.n,
+        policy_hidden_dims=config.pop('policy_hidden_dims'),
+        value_hidden_dims=config.pop('value_hidden_dims'),
+        env=env,
+        device=device,
+        policy_lr=config.pop('policy_lr'),
+        value_lr=config.pop('value_lr'),
+        gamma=config.pop('gamma'),
+        critic_coeff=config.pop('critic_coeff'),
+        entropy_coeff=config.pop('entropy_coeff')
+    )
+    return agent, config
+
+
+if __name__ == '__main__':
+    # Loading config
+    with open('config-a2c.yaml', 'r') as f:
+        config = yaml.safe_load(f)
+
+    experiment(config, agent_builder_a2c)

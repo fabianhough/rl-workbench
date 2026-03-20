@@ -11,7 +11,7 @@ from src.learn import train, TrainFreq, SamplingType
 
 
 
-def agent_builder_reinforce(config, env):
+def agent_builder_reinforce(config, env, device):
     agent = AgentReinforce(
         input_dim=env.observation_space.shape[0],
         output_dim=env.action_space.n,

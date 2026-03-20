@@ -26,7 +26,7 @@ def experiment(config, agent_builder):
 
         # Generating agent
         device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-        agent, config = agent_builder(config, env)
+        agent, config = agent_builder(config, env, device)
 
         # Setting up training frequency and sampling type
         config['train_freq'] = TrainFreq(config['train_freq'])

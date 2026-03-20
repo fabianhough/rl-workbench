@@ -16,8 +16,9 @@ class AgentA2C(SimpleLinearNet):
         output_dim: int,
         policy_hidden_dims: list,
         value_hidden_dims: list,
-        activation=nn.ReLU,
+        env,
         device='cpu',
+        activation=nn.ReLU,
         policy_lr=3e-4,
         value_lr=1e-3,
         gamma=0.99,
@@ -81,14 +82,32 @@ class AgentA2C(SimpleLinearNet):
         self.policy_optimizer.zero_grad()
         self.value_optimizer.zero_grad()
 
+        # Calculating n-step TD rewards-to-go
+        n = len(rewards)
+        G_t = 0
+        done_i = None
+        for i in reversed(range(n)):
+            if dones[i]:
+                done_i = i
+            G_t = rewards[i] + self.gamma * (1 - dones[i]) * G_t
+
+        # Bootstrap if episode didn't end within buffer
+        if done_i is None:
+            G_t += self.gamma**n * value_net(next_observs[-1])
+
         # Critic
-        critic_td = rewards + self.gamma * (1 - dones) * value_net(next_observs)
-        critic_y_h = value_net(observs)
+        # critic_td = rewards + self.gamma * (1 - dones) * value_net(next_observs)
+        critic_td = G_t
+        critic_y_h = value_net(observs[0])
+
+        print(critic_td)
+        print(critic_y_h)
+        raise Exception
 
         # Actor
         advantage = (critic_td - critic_y_h).detach()
-        actor_dist = policy_net.policy(observs)
-        actor_log_prob = actor_dist.log_prob(actions)
+        actor_dist = policy_net.policy(observs[0])
+        actor_log_prob = actor_dist.log_prob(actions[0])
         actor_entropy = actor_dist.entropy()
 
         # Calculating loss
