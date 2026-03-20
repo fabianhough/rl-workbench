@@ -1,9 +1,11 @@
 
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
+import torch.nn.functional as F
 
 from torch.optim import Adam
+from torch.distributions import Categorical
 
 from .base import Agent
 from ..model import SimpleLinearNet
@@ -56,6 +58,13 @@ class AgentA2C():
             lr=value_lr
         )
 
+    def policy(self, observs):
+        # Unnormalized log probabilities
+        logits = self.policy_net(observs)
+
+        # Includes Softmax using log-sum-exp
+        return Categorical(logits=logits)
+
     def act(self, observ, **kwargs):
         self.policy_net.eval()
         with torch.no_grad():
@@ -93,26 +102,22 @@ class AgentA2C():
 
         # Bootstrap if episode didn't end within buffer
         if done_i is None:
-            G_t += self.gamma**n * value_net(next_observs[-1])
+            G_t += self.gamma**n * self.value_net(next_observs[-1]).squeeze()
 
         # Critic
         # critic_td = rewards + self.gamma * (1 - dones) * value_net(next_observs)
         critic_td = G_t
-        critic_y_h = value_net(observs[0])
-
-        print(critic_td)
-        print(critic_y_h)
-        raise Exception
+        critic_y_h = self.value_net(observs[0]).squeeze()
 
         # Actor
         advantage = (critic_td - critic_y_h).detach()
-        actor_dist = policy_net.policy(observs[0])
+        actor_dist = self.policy(observs[0])
         actor_log_prob = actor_dist.log_prob(actions[0])
         actor_entropy = actor_dist.entropy()
 
         # Calculating loss
         critic_loss = F.mse_loss(critic_y_h, critic_td.detach())
-        actor_loss = -(actor_log_prob * advantage).mean() - self.entropy_coeff * actor_entropy.mean()
+        actor_loss = -(actor_log_prob * advantage) - self.entropy_coeff * actor_entropy
         loss = actor_loss + self.critic_coeff * critic_loss
 
         # Back-propagation
