@@ -104,7 +104,7 @@ class AgentA2C(SimpleLinearNet):
         # Returning loss metrics
         return {
             'loss': loss.item(),
-            'actor_loss': actor_loss.item()
+            'actor_loss': actor_loss.item(),
             'critic_loss': critic_loss.item()
         }
 
