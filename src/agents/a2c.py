@@ -66,7 +66,7 @@ class AgentA2C(SimpleLinearNet):
         self.policy_net.train()
         return action
 
-    def train(self, sample): ...
+    def train(self, sample):
         # Unwrapping sample
         observs, actions, rewards, next_observs, dones = sample
 
