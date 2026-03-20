@@ -74,9 +74,6 @@ class AgentReinforce(Agent):
         return -(log_probs * weights).mean()
 
     def train(self, sample):
-        # Preparing optimizer
-        self.optimizer.zero_grad()
-
         # Unwrapping sample
         observs, actions, rewards, _, dones = sample
 
@@ -87,6 +84,9 @@ class AgentReinforce(Agent):
         observs = torch.tensor(observs).to(self._device)
         actions = torch.tensor(actions).to(self._device)
         returns = torch.tensor(returns).to(self._device)
+
+        # Preparing optimizer
+        self.optimizer.zero_grad()
 
         # Calculating loss
         loss = self.loss(observs, actions, returns)

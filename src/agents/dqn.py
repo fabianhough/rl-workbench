@@ -84,9 +84,6 @@ class AgentDQN(Agent):
         return action
 
     def train(self, sample):
-        # Preparing optimizer
-        self.optimizer.zero_grad()
-
         # Unwrapping sample
         observs, actions, rewards, next_observs, dones = sample
 
@@ -96,6 +93,9 @@ class AgentDQN(Agent):
         rewards = torch.tensor(rewards).to(self._device)
         next_observs = torch.tensor(next_observs).to(self._device)
         dones = torch.tensor(dones).to(self._device)
+
+        # Preparing optimizer
+        self.optimizer.zero_grad()
 
         # Calculating loss
         with torch.no_grad():
