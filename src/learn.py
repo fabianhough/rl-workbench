@@ -76,6 +76,7 @@ def train(
 
     # Global step tracking
     global_steps = 0
+    global_episodes = 0
     for batch in range(num_batches):
         for episode in range(num_episodes):
             print(f'Batch: {batch:03d}\tEpisode {episode:04d}', end='\r')
@@ -130,6 +131,7 @@ def train(
                     # Resetting environment and initial variables
                     observ, info = env.reset()
                     steps = 0
+                    global_episodes += 1
 
                     # Ending the episode
                     break
@@ -146,6 +148,13 @@ def train(
                 env_seed=env_eval_seed
             )
 
+            if global_episodes % episodes_per_visual == 0:
+                # Saving gif of performance
+                eval_gif_fn = f'eval_{batch:03d}_{episode:03d}.gif'
+                save_gif(frames=frames, path=eval_gif_fn)
+                mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
+                os.remove(eval_gif_fn)
+
             # Log evaluation metrics
             mlflow.log_metrics(
                 {
@@ -161,20 +170,6 @@ def train(
             if reset_on_sample:
                 buffer.reset()
 
-
-        if ((episode+1)*(batch+1)) % episodes_per_visual == 0:
-            # Evaluate agent for gif
-            total_rewards, frames = evaluate_episode(
-                agent=agent,
-                env=env,
-                env_seed=env_eval_seed
-            )
-
-            # Saving gif of performance
-            eval_gif_fn = f'eval_{batch:03d}_{episode:03d}.gif'
-            save_gif(frames=frames, path=eval_gif_fn)
-            mlflow.log_artifact(eval_gif_fn, artifact_path=f'eval')
-            os.remove(eval_gif_fn)
 
         # Register Model
 
