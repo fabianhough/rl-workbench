@@ -5,14 +5,22 @@ import torch
 import mlflow
 import gymnasium as gym
 
+from src import experiment
 from src.agents import AgentReinforce
 from src.learn import train, TrainFreq, SamplingType
 
 
 
-
-
-
+def agent_builder_reinforce(config, env):
+    agent = AgentReinforce(
+        input_dim=env.observation_space.shape[0],
+        output_dim=env.action_space.n,
+        hidden_dims=config.pop('hidden_dims'),
+        device=device,
+        gamma=config.pop('gamma'),
+        lr=config.pop('lr')
+    )
+    return agent, config
 
 
 if __name__ == '__main__':
@@ -20,34 +28,4 @@ if __name__ == '__main__':
     with open('config-reinforce.yaml', 'r') as f:
         config = yaml.safe_load(f)
 
-    # Configuring mlflow
-    mlflow.set_tracking_uri(config.pop('tracking_uri'))
-    mlflow.set_experiment(config.pop('experiment'))
-    mlflow.enable_system_metrics_logging()
-
-    # Starting MLFlow
-    with mlflow.start_run():
-
-        # Log Parameters
-        mlflow.log_params(params=config)
-    
-        # Generating Environment
-        env = gym.make(id=config.pop('env_str'), render_mode='rgb_array')
-
-        # Generating agent
-        device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
-        agent = AgentReinforce(
-            input_dim=env.observation_space.shape[0],
-            output_dim=env.action_space.n,
-            hidden_dims=config.pop('hidden_dims'),
-            device=device,
-            gamma=config.pop('gamma'),
-            lr=config.pop('lr')
-        )
-
-        # Setting up training frequency and sampling type
-        config['train_freq'] = TrainFreq(config['train_freq'])
-        config['sampling'] = SamplingType(config['sampling'])
-
-        # Train
-        train(agent=agent, env=env, **config)
+    experiment(config, agent_builder_reinforce)
