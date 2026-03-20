@@ -23,6 +23,7 @@ if __name__ == '__main__':
     # Configuring mlflow
     mlflow.set_tracking_uri(config.pop('tracking_uri'))
     mlflow.set_experiment(config.pop('experiment'))
+    mlflow.enable_system_metrics_logging()
 
     # Starting MLFlow
     with mlflow.start_run():
