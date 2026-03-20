@@ -102,8 +102,9 @@ def train(
 
                 # Training per step
                 if train_freq == TrainFreq.STEP:
-                    train_metrics = agent.train(buffer.sample())
-                    mlflow.log_metrics(train_metrics, step=global_steps)
+                    if buffer.ready():
+                        train_metrics = agent.train(buffer.sample())
+                        mlflow.log_metrics(train_metrics, step=global_steps)
 
                 # Incrementing rewards and steps
                 ep_rewards.append(reward)
@@ -120,13 +121,14 @@ def train(
 
                     # Training per episode
                     if train_freq == TrainFreq.EPISODE:
-                        train_metrics = agent.train(buffer.sample())
-                        mlflow.log_metrics(
-                            train_metrics,
-                            step=batch*num_episodes+episode
-                        )
-                        if reset_on_sample:
-                            buffer.reset()
+                        if buffer.ready():
+                            train_metrics = agent.train(buffer.sample())
+                            mlflow.log_metrics(
+                                train_metrics,
+                                step=batch*num_episodes+episode
+                            )
+                            if reset_on_sample:
+                                buffer.reset()
 
                     # Resetting environment and initial variables
                     observ, info = env.reset()
@@ -165,10 +167,11 @@ def train(
 
         # Training per batch
         if train_freq == TrainFreq.BATCH:
-            train_metrics = agent.train(buffer.sample())
-            mlflow.log_metrics(train_metrics, step=batch)
-            if reset_on_sample:
-                buffer.reset()
+            if buffer.ready():
+                train_metrics = agent.train(buffer.sample())
+                mlflow.log_metrics(train_metrics, step=batch)
+                if reset_on_sample:
+                    buffer.reset()
 
 
         # Register Model
