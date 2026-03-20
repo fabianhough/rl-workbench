@@ -10,7 +10,7 @@ from ..model import SimpleLinearNet
 
 
 
-class AgentA2C(SimpleLinearNet):
+class AgentA2C():
     def __init__(self,
         input_dim: int,
         output_dim: int,
