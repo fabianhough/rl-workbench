@@ -1,8 +1,25 @@
 
 from enum import Enum
 from collections import deque
+from abc import ABC, abstractmethod
+
 import numpy as np
 from gymnasium.spaces import Box, Discrete
+
+
+class Buffer(ABC):
+
+    @abstractmethod
+    def reset(self) -> None: ...
+
+    @abstractmethod
+    def add(self, observ, action, reward, next_observ, done) -> None: ...
+
+    @abstractmethod
+    def sample(self) -> tuple: ...
+
+    @abstractmethod
+    def ready(self) -> bool: ...
 
 
 
@@ -55,6 +72,9 @@ class ReplayBuffer():
         '''
         return self._full
 
+    def ready(self):
+        return True
+
     @property
     def length(self) -> int:
         '''
@@ -103,6 +123,9 @@ class RolloutBuffer():
         self.next_observs = []
         self.dones = []
 
+    def ready(self):
+        return True
+
     def add(self, observ, action, reward, next_observ, done):
         self.observs.append(observ)
         self.actions.append(action)
@@ -140,6 +163,9 @@ class NStepBuffer():
     @property
     def full(self):
         return len(self.observs) == self.n
+
+    def ready(self):
+        return self.full
 
     def add(self, observ, action, reward, next_observ, done):
         self.observs.append(observ)
