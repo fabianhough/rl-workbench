@@ -13,7 +13,7 @@ class Buffer(ABC):
     def reset(self) -> None: ...
 
     @abstractmethod
-    def add(self, observ, action, reward, next_observ, done) -> None: ...
+    def add(self, observ, action, reward, next_observ, done, value) -> None: ...
 
     @abstractmethod
     def sample(self) -> tuple: ...
@@ -47,6 +47,7 @@ class ReplayBuffer(Buffer):
         else:
             self.actions = np.zeros((self.buffer_len, action_space.shape[0]), dtype=action_space.dtype)
         self.rewards = np.zeros((self.buffer_len,), dtype=np.float32)
+        self.values = np.zeros((self.buffer_len,), dtype=np.float32)
         self.next_observs = np.zeros((self.buffer_len, *observ_space.shape), dtype=observ_space.dtype)
         self.dones = np.zeros((self.buffer_len,), dtype=np.float32)
 
@@ -85,13 +86,14 @@ class ReplayBuffer(Buffer):
         '''
         return self.pos if not self._full else self.buffer_len
 
-    def add(self, observ, action, reward, next_observ, done):
+    def add(self, observ, action, reward, next_observ, done, value):
         # Overwriting entries at location
         self.observs[self.pos] = observ
         self.actions[self.pos] = action
         self.rewards[self.pos] = reward
         self.next_observs[self.pos] = next_observ
         self.dones[self.pos] = done
+        self.values[self.pos] = value
 
         # Incrementing pointer, and resetting when full
         self.pos += 1
@@ -108,7 +110,8 @@ class ReplayBuffer(Buffer):
             self.actions[sample_idxs],
             self.rewards[sample_idxs],
             self.next_observs[sample_idxs],
-            self.dones[sample_idxs]
+            self.dones[sample_idxs],
+            self.values[sample_idxs]
         )
 
 
@@ -122,16 +125,18 @@ class RolloutBuffer(Buffer):
         self.rewards = []
         self.next_observs = []
         self.dones = []
+        self.values = []
 
     def ready(self):
         return True
 
-    def add(self, observ, action, reward, next_observ, done):
+    def add(self, observ, action, reward, next_observ, done, value):
         self.observs.append(observ)
         self.actions.append(action)
         self.rewards.append(reward)
         self.next_observs.append(next_observ)
         self.dones.append(done)
+        self.values.append(value)
 
     def reset(self):
         self.observs = []
@@ -139,6 +144,7 @@ class RolloutBuffer(Buffer):
         self.rewards = []
         self.next_observs = []
         self.dones = []
+        self.value = []
 
     def sample(self):
         return (
@@ -146,7 +152,8 @@ class RolloutBuffer(Buffer):
             np.array(self.actions),
             np.array(self.rewards, dtype=np.float32),
             np.array(self.next_observs),
-            np.array(self.dones, dtype=np.float32)
+            np.array(self.dones, dtype=np.float32),
+            np.array(self.values, dtype=np.float32)
         )
 
 
@@ -159,6 +166,7 @@ class NStepBuffer(Buffer):
         self.rewards = deque(maxlen=n)
         self.next_observs = deque(maxlen=n)
         self.dones = deque(maxlen=n)
+        self.values = deque(maxlen=n)
 
     @property
     def full(self):
@@ -167,12 +175,13 @@ class NStepBuffer(Buffer):
     def ready(self):
         return self.full
 
-    def add(self, observ, action, reward, next_observ, done):
+    def add(self, observ, action, reward, next_observ, done, value):
         self.observs.append(observ)
         self.actions.append(action)
         self.rewards.append(reward)
         self.next_observs.append(next_observ)
         self.dones.append(done)
+        self.values.append(value)
 
     def reset(self):
         self.observs = deque(maxlen=n)
@@ -180,6 +189,7 @@ class NStepBuffer(Buffer):
         self.rewards = deque(maxlen=n)
         self.next_observs = deque(maxlen=n)
         self.dones = deque(maxlen=n)
+        self.values = deque(maxlen=n)
 
     def sample(self):
         return (
@@ -187,6 +197,7 @@ class NStepBuffer(Buffer):
             np.array(self.actions),
             np.array(self.rewards, dtype=np.float32),
             np.array(self.next_observs),
-            np.array(self.dones, dtype=np.float32)
+            np.array(self.dones, dtype=np.float32),
+            np.array(self.values, dtype=np.float32)
         )
 

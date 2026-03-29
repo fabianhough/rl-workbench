@@ -75,7 +75,7 @@ class AgentReinforce(Agent):
 
     def train(self, sample):
         # Unwrapping sample
-        observs, actions, rewards, _, dones = sample
+        observs, actions, rewards, _, dones, _ = sample
 
         # Discounted returns to go
         returns = discounted_rewards_to_go(rewards, dones, self.gamma)

@@ -98,7 +98,7 @@ def train(
                 done = terminated or truncated
 
                 # Adding experience to buffer
-                buffer.add(observ, action, reward, next_observ, done)
+                buffer.add(observ, action, reward, next_observ, done, value)
 
                 # Training per step
                 if train_freq == TrainFreq.STEP:

@@ -85,7 +85,7 @@ class AgentDQN(Agent):
 
     def train(self, sample):
         # Unwrapping sample
-        observs, actions, rewards, next_observs, dones = sample
+        observs, actions, rewards, next_observs, dones, _ = sample
 
         # Preparing tensors
         observs = torch.tensor(observs).to(self._device)
