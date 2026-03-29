@@ -129,7 +129,7 @@ class AgentPPO(Agent):
             self.value_optimizer.zero_grad()
 
             # Random sample
-            mb_idxs = np.random.randint(0, len(observs), size=self.mini_batch_size)
+            mb_idxs = np.random.randint(0, len(observs), size=min(self.mini_batch_size, len(observs)//self.mini_batches))
 
             # Policy Loss
             new_dist = self.policy(observs[mb_idxs])
