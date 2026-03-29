@@ -81,7 +81,7 @@ class AgentDQN(Agent):
             else:
                 action = self.policy(observ_tensor.unsqueeze(0)).argmax().item()
         self.q_net.train()
-        return action
+        return action, None
 
     def train(self, sample):
         # Unwrapping sample

@@ -91,7 +91,7 @@ def train(
             # Runs through episode until terminated or truncated
             while True:
                 # Retrieve action from agent
-                action = agent.act(observ)
+                action, value = agent.act(observ)
 
                 # Step through environment with action
                 next_observ, reward, terminated, truncated, info = env.step(action)

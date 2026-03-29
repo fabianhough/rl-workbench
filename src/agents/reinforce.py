@@ -65,7 +65,7 @@ class AgentReinforce(Agent):
             # Sample an action
             action = self.policy(observ_tensor.unsqueeze(0)).sample().item()
         self.net.train()
-        return action
+        return action, None
 
     def loss(self, observs, actions, weights):
         # Generating the log_probs

@@ -67,14 +67,20 @@ class AgentA2C(Agent):
 
     def act(self, observ, **kwargs):
         self.policy_net.eval()
+        self.value_net.eval()
         with torch.no_grad():
             # Prepare observ
             observ_tensor = torch.tensor(observ, dtype=torch.float32).to(self._device)
 
             # Sample an action
             action = self.policy(observ_tensor.unsqueeze(0)).sample().item()
+
+            # Calculate value
+            value = self.value_net(observ_tensor.unsqueeze(0)).item()
+
         self.policy_net.train()
-        return action
+        self.value_net.train()
+        return action, value
 
     def train(self, sample):
         # Unwrapping sample
