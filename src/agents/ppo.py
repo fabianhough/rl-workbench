@@ -28,8 +28,7 @@ class AgentPPO(Agent):
         clip_eps=0.2,
         critic_coeff=0.5,
         entropy_coeff=0.05,
-        mini_batches=4,
-        mini_batch_size=20,
+        mini_batches=4
     ):
         
         self._device = device
@@ -43,7 +42,6 @@ class AgentPPO(Agent):
 
         # Has an internal mini_batch system, once rollout buffer is received
         self.mini_batches = mini_batches
-        self.mini_batch_size = mini_batch_size
 
         self.policy_net = SimpleLinearNet(
             input_dim=input_dim,
@@ -129,7 +127,7 @@ class AgentPPO(Agent):
             self.value_optimizer.zero_grad()
 
             # Random sample
-            mb_idxs = np.random.randint(0, len(observs), size=min(self.mini_batch_size, len(observs)//self.mini_batches))
+            mb_idxs = np.random.randint(0, len(observs), size=len(observs)//self.mini_batches)
 
             # Policy Loss
             new_dist = self.policy(observs[mb_idxs])

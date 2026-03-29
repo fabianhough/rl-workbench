@@ -26,8 +26,7 @@ def agent_builder_ppo(config, env, device):
         clip_eps=config.pop('clip_epsilon'),
         critic_coeff=config.pop('critic_coeff'),
         entropy_coeff=config.pop('entropy_coeff'),
-        mini_batches=config.pop('mini_batches'),
-        mini_batch_size=config.pop('mini_batch_size')
+        mini_batches=config.pop('mini_batches')
     )
     return agent, config
 
