@@ -25,6 +25,7 @@ class AgentPPO(Agent):
         value_lr=1e-3,
         gamma=0.99,
         gae_lambda=0.95,
+        clip_eps=0.2,
         critic_coeff=0.5,
         entropy_coeff=0.05,
         mini_batches=4,
@@ -36,6 +37,7 @@ class AgentPPO(Agent):
 
         self.gamma = gamma
         self.gae_lambda = gae_lambda
+        self.clip_eps = clip_eps
         self.critic_coeff = critic_coeff
         self.entropy_coeff = entropy_coeff
 
@@ -92,7 +94,7 @@ class AgentPPO(Agent):
             value = self.value(observ_tensor.unsqueeze(0)).item()
         self.policy_net.train()
         self.value_net.train()
-        return action
+        return action, value
 
     def train(self, sample):
         # Unwrapping sample
@@ -106,17 +108,48 @@ class AgentPPO(Agent):
         dones = torch.tensor(dones).to(self._device)
         values = torch.tensor(values).to(self._device)
 
-        # Preparing optimizer
-        self.policy_optimizer.zero_grad()
-        self.value_optimizer.zero_grad()
+        # Preparing next values and log probs
+        with torch.no_grad():
+            next_values = self.value(next_observs)
+            log_probs = self.policy(observs).log_prob(actions)
 
         # GAE Calculation
+        advantages = torch.zeros_like(rewards).to(self._device)
+        last_advantage = 0
+        for t in reverse(range(len(rewards))):
+            # TD error
+            delta = rewards[t] + self.gamma * next_values[t] * (1 - dones[t]) - values[t]
+            advantages[t] = last_advantage = delta + self.gamma * self.gae_lambda * last_advantage * (1 - dones[t])
+        returns = advantages + values
 
+        # Mini-batches
+        for mb in range(self.mini_batches):
+            # Preparing optimizer
+            self.policy_optimizer.zero_grad()
+            self.value_optimizer.zero_grad()
 
-        # Back-propagation
-        loss.backward()
-        self.policy_optimizer.step()
-        self.value_optimizer.step()
+            # Random sample
+            mb_idxs = np.random.randint(0, len(observs), size=self.mini_batch_size)
+
+            # Policy Loss
+            new_dist = self.policy(observs[mb_idxs])
+            new_log_probs = new_dist.log_prob(actions[mb_idxs])
+            log_ratio = new_log_probs - log_probs[mb_idxs]
+            ratio = log_ratio.exp()
+
+            entropy = new_dist.entropy().mean()
+            actor_loss = -torch.min(advantages[mb_idxs] * ratio, advantages[mb_idxs]* torch.clamp(ratio, 1-self.clip_eps, 1+self.clip_eps)).mean()
+
+            # Value Loss
+            critic_loss = F.mse_loss(self.value_net(observs[mb_idxs]), returns[mb_idxs])
+            
+            # Loss
+            loss = actor_loss + self.critic_coeff * critic_loss - self.entropy_coeff * entropy
+
+            # Back-propagation
+            loss.backward()
+            self.policy_optimizer.step()
+            self.value_optimizer.step()
 
         # Returning loss metrics
         return {
