@@ -47,6 +47,7 @@ def train(
     env: Env,
     num_episodes: int=1,
     num_batches: int=1,
+    step_limit: int=None,
     train_freq: TrainFreq=TrainFreq.STEP,
     sampling: SamplingType=SamplingType.ROLLOUT,
     sample_size: int=1,
@@ -78,6 +79,7 @@ def train(
     global_steps = 0
     global_episodes = 0
     for batch in range(num_batches):
+        batch_steps = 0
         for episode in range(num_episodes):
             print(f'Batch: {batch:03d}\tEpisode {episode:04d}', end='\r')
 
@@ -110,6 +112,7 @@ def train(
                 ep_rewards.append(reward)
                 steps += 1
                 global_steps += 1
+                batch_steps += 1
 
                 if done:
                     # Logging episode specific metrics
@@ -164,6 +167,11 @@ def train(
                     'eval_steps': len(total_rewards)
                 }, step=batch*num_episodes + episode
             )
+
+            # Early cutoff based on max step limit
+            if step_limit:
+                if batch_steps >= step_limit:
+                    break
 
         # Training per batch
         if train_freq == TrainFreq.BATCH:
