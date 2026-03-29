@@ -74,18 +74,23 @@ class AgentPPO(Agent):
 
     def act(self, observ, **kwargs):
         self.policy_net.eval()
+        self.value_net.eval()
         with torch.no_grad():
             # Prepare observ
             observ_tensor = torch.tensor(observ, dtype=torch.float32).to(self._device)
 
             # Sample an action
             action = self.policy(observ_tensor.unsqueeze(0)).sample().item()
+
+            # Estimate a value
+            value = self.value(observ_tensor.unsqueeze(0)).item()
         self.policy_net.train()
+        self.value_net.train()
         return action
 
     def train(self, sample):
         # Unwrapping sample
-        observs, actions, rewards, next_observs, dones = sample
+        observs, actions, rewards, next_observs, dones, values = sample
 
         # Preparing tensors
         observs = torch.tensor(observs).to(self._device)
@@ -93,6 +98,7 @@ class AgentPPO(Agent):
         rewards = torch.tensor(rewards).to(self._device)
         next_observs = torch.tensor(next_observs).to(self._device)
         dones = torch.tensor(dones).to(self._device)
+        values = torch.tensor(values).to(self._device)
 
         # Preparing optimizer
         self.policy_optimizer.zero_grad()
