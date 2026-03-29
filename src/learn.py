@@ -120,7 +120,7 @@ def train(
                         mlflow.log_metrics({
                             'episode_reward': sum(ep_rewards),
                             'episode_steps': steps
-                        }, step=episode)
+                        }, step=global_steps)
 
                     # Training per episode
                     if train_freq == TrainFreq.EPISODE:
@@ -128,7 +128,7 @@ def train(
                             train_metrics = agent.train(buffer.sample())
                             mlflow.log_metrics(
                                 train_metrics,
-                                step=batch*num_episodes+episode
+                                step=global_steps
                             )
                             if reset_on_sample:
                                 buffer.reset()
@@ -165,7 +165,7 @@ def train(
                 {
                     'eval_reward': sum(total_rewards),
                     'eval_steps': len(total_rewards)
-                }, step=batch*num_episodes + episode
+                }, step=global_steps
             )
 
             # Early cutoff based on max step limit
