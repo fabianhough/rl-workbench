@@ -110,13 +110,13 @@ class AgentPPO(Agent):
 
         # Preparing next values and log probs
         with torch.no_grad():
-            next_values = self.value(next_observs)
+            next_values = self.value(next_observs).squeeze()
             log_probs = self.policy(observs).log_prob(actions)
 
         # GAE Calculation
         advantages = torch.zeros_like(rewards).to(self._device)
         last_advantage = 0
-        for t in reverse(range(len(rewards))):
+        for t in reversed(range(len(rewards))):
             # TD error
             delta = rewards[t] + self.gamma * next_values[t] * (1 - dones[t]) - values[t]
             advantages[t] = last_advantage = delta + self.gamma * self.gae_lambda * last_advantage * (1 - dones[t])
@@ -141,7 +141,7 @@ class AgentPPO(Agent):
             actor_loss = -torch.min(advantages[mb_idxs] * ratio, advantages[mb_idxs]* torch.clamp(ratio, 1-self.clip_eps, 1+self.clip_eps)).mean()
 
             # Value Loss
-            critic_loss = F.mse_loss(self.value_net(observs[mb_idxs]), returns[mb_idxs])
+            critic_loss = F.mse_loss(self.value_net(observs[mb_idxs]).squeeze(), returns[mb_idxs])
             
             # Loss
             loss = actor_loss + self.critic_coeff * critic_loss - self.entropy_coeff * entropy
