@@ -144,7 +144,7 @@ class RolloutBuffer(Buffer):
         self.rewards = []
         self.next_observs = []
         self.dones = []
-        self.value = []
+        self.values = []
 
     def sample(self):
         return (
