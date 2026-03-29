@@ -23,7 +23,7 @@ class Buffer(ABC):
 
 
 
-class ReplayBuffer():
+class ReplayBuffer(Buffer):
     def __init__(self,
         buffer_len: int,
         sample_size: int,
@@ -112,7 +112,7 @@ class ReplayBuffer():
         )
 
 
-class RolloutBuffer():
+class RolloutBuffer(Buffer):
     def __init__(self):
         '''
         '''
@@ -150,7 +150,7 @@ class RolloutBuffer():
         )
 
 
-class NStepBuffer():
+class NStepBuffer(Buffer):
     def __init__(self, n: int):
         self.n = n
 
