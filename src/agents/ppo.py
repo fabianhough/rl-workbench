@@ -26,7 +26,9 @@ class AgentPPO(Agent):
         gamma=0.99,
         gae_lambda=0.95,
         critic_coeff=0.5,
-        entropy_coeff=0.05
+        entropy_coeff=0.05,
+        mini_batches=4,
+        mini_batch_size=20,
     ):
         
         self._device = device
@@ -36,6 +38,10 @@ class AgentPPO(Agent):
         self.gae_lambda = gae_lambda
         self.critic_coeff = critic_coeff
         self.entropy_coeff = entropy_coeff
+
+        # Has an internal mini_batch system, once rollout buffer is received
+        self.mini_batches = mini_batches
+        self.mini_batch_size = mini_batch_size
 
         self.policy_net = SimpleLinearNet(
             input_dim=input_dim,
