@@ -199,5 +199,10 @@ class AgentSAC(Agent):
         for param, target_param in zip(self.qNet1.parameters(), self.qTgt1.parameters()):
             target_param.data.copy_(self.tau * param.data + (1 - self.tau) * target_param.data)
             
+        # Returning loss metrics
+        return {
+            'policy_loss': policy_loss.item(),
+            'q_loss': q_loss.item()
+        }
 
     def post_episode(self): ...
