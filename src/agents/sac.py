@@ -83,6 +83,8 @@ class AgentSAC(Agent):
 
         # Moving onto device
         self.policyNet.to(device)
+        self.policy_mean.to(device)
+        self.policy_logstd.to(device)
         self.qNet0.to(device)
         self.qNet1.to(device)
         self.qTgt0.to(device)
@@ -94,7 +96,9 @@ class AgentSAC(Agent):
 
         # Optimizers
         self.policy_optim = Adam(
-            params=self.policyNet.parameters(),
+            params=list(self.policyNet.parameters()) + \
+                list(self.policy_mean.parameters()) + \
+                list(self.policy_logstd.parameters()),
             lr=policy_lr
         )
         self.q_optim = Adam(
@@ -160,15 +164,15 @@ class AgentSAC(Agent):
         with torch.no_grad():
             # Getting next actions and next log_probs
             next_actions, next_log_probs = self.sample_policy(next_observs)
-            qtgt0 = self.qTgt0(next_observs, next_actions)
-            qtgt1 = self.qTgt1(next_observs, next_actions)
+            qtgt0 = self.qTgt0(torch.cat([next_observs, next_actions], 1))
+            qtgt1 = self.qTgt1(torch.cat([next_observs, next_actions], 1))
             
             q_tgts = torch.min(qtgt0, qtgt1) - self.alpha * next_log_probs
-            td_tgts = rewards + (1 - dones) * self.gamma * q_tgts
+            td_tgts = rewards + (1 - dones) * self.gamma * q_tgts.squeeze(1)
 
         # Q Training
-        q_vals0 = self.qNet0(observs, actions)
-        q_vals1 = self.qNet1(observs, actions)
+        q_vals0 = self.qNet0(torch.cat([observs, actions], 1)).squeeze(1)
+        q_vals1 = self.qNet1(torch.cat([observs, actions], 1)).squeeze(1)
         q_loss = F.mse_loss(q_vals0, td_tgts) + F.mse_loss(q_vals1, td_tgts)
 
         self.q_optim.zero_grad()
@@ -178,8 +182,8 @@ class AgentSAC(Agent):
         # Policy Training
         # Using Pi to denote actions from the current policy
         pi, log_pi = self.sample_policy(observs)
-        q_pi_0 = self.qNet0(observs, pi)
-        q_pi_1 = self.qNet1(observs, pi)
+        q_pi_0 = self.qNet0(torch.cat([observs, pi], 1))
+        q_pi_1 = self.qNet1(torch.cat([observs, pi], 1))
         min_q_pi = torch.min(q_pi_0, q_pi_1)
 
         # Goal is to minimize low-entropy, and maximize Q value
