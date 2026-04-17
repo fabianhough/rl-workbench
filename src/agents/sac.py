@@ -133,7 +133,7 @@ class AgentSAC(Agent):
 
         return action, log_prob
 
-    def act(self, observ):
+    def act(self, observ, **kwargs):
         self.policyNet.eval()
         with torch.no_grad():
             # Prepare observ
@@ -147,7 +147,7 @@ class AgentSAC(Agent):
             action = torch.tanh(normal.sample()) * self.action_gain + self.action_bias
             action = action.squeeze(0)
         self.policyNet.train()
-        return action.cpu(), None
+        return action.cpu().numpy(), None
 
 
     def train(self, sample):
