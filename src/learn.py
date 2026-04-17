@@ -53,7 +53,8 @@ def train(
     sample_size: int=1,
     mlflow_log: bool=True,
     env_eval_seed: int=42,
-    episodes_per_visual: int=100
+    episodes_per_visual: int=100,
+    training_delay: int=0
 ):
     '''
 
@@ -78,6 +79,7 @@ def train(
     # Global step tracking
     global_steps = 0
     global_episodes = 0
+    training_flag = True if training_delay == 0 else False
     for batch in range(num_batches):
         batch_steps = 0
         for episode in range(num_episodes):
@@ -92,8 +94,12 @@ def train(
             
             # Runs through episode until terminated or truncated
             while True:
-                # Retrieve action from agent
-                action, value = agent.act(observ)
+                if not training_flag:
+                    action = env.action_space.sample()
+                    value = None
+                else:
+                    # Retrieve action from agent
+                    action, value = agent.act(observ)
 
                 # Step through environment with action
                 next_observ, reward, terminated, truncated, info = env.step(action)
@@ -103,7 +109,7 @@ def train(
                 buffer.add(observ, action, reward, next_observ, done, value)
 
                 # Training per step
-                if train_freq == TrainFreq.STEP:
+                if train_freq == TrainFreq.STEP and training_flag:
                     if buffer.ready():
                         train_metrics = agent.train(buffer.sample())
                         mlflow.log_metrics(train_metrics, step=global_steps)
@@ -113,6 +119,11 @@ def train(
                 steps += 1
                 global_steps += 1
                 batch_steps += 1
+
+                if not training_flag:
+                    if global_steps >= training_delay:
+                        training_flag = True
+                        print('Starting Training...')
 
                 if done:
                     # Logging episode specific metrics

@@ -29,7 +29,7 @@ def agent_builder_sac(config, env, device):
         q_lr=config.pop('q_lr'),
         gamma=config.pop('gamma'),
         tau=config.pop('tau'),
-        alpha=config.pop('alpha'),
+        alpha=config.pop('alpha')
     )
     return agent, config
 
