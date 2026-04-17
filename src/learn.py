@@ -70,7 +70,7 @@ def train(
         buffer = NStepBuffer(n=sample_size)
     elif sampling == SamplingType.REPLAY:
         buffer = ReplayBuffer(
-            buffer_len=10000,
+            buffer_len=100000,
             sample_size=sample_size,
             observ_space=env.observation_space,
             action_space=env.action_space
