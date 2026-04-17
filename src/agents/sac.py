@@ -40,8 +40,8 @@ class AgentSAC(Agent):
         self.alpha = alpha
 
         # Action Scaling
-        self.action_gain = action_gain
-        self.action_bias = action_bias
+        self.action_gain = torch.tensor(action_gain, dtype=torch.float32).to(device)
+        self.action_bias = torch.tensor(action_bias, dtype=torch.float32).to(device)
 
         # Policy Net
         self.policyNet = SimpleLinearNet(
@@ -145,9 +145,9 @@ class AgentSAC(Agent):
             normal = Normal(mean, std)
             # Only using sample here as we are only interestedin the action and not the gradient
             action = torch.tanh(normal.sample()) * self.action_gain + self.action_bias
-            action = action.item()
+            action = action.squeeze(0)
         self.policyNet.train()
-        return action, None
+        return action.cpu(), None
 
 
     def train(self, sample):

@@ -13,11 +13,11 @@ from src.learn import train, TrainFreq, SamplingType
 
 
 def agent_builder_sac(config, env, device):
-    action_gain = (env.single_action_space.high - env.single_action_space.low) / 2.0
-    action_bias = (env.single_action_space.high + env.single_action_space.low) / 2.0
+    action_gain = (env.action_space.high - env.action_space.low) / 2.0
+    action_bias = (env.action_space.high + env.action_space.low) / 2.0
     agent = AgentSAC(
         state_dim=env.observation_space.shape[0],
-        action_dim=env.action_space.n,
+        action_dim=env.action_space.shape[0],
         policy_hidden_dims=config.pop('policy_hidden_dims'),
         policy_output_dim=config.pop('policy_output_dim'),
         q_hidden_dims=config.pop('q_hidden_dims'),
